@@ -44,7 +44,7 @@ const nav = [
 function Cta({ className }: { className?: string }) {
   return (
     <div className={cx("flex flex-wrap gap-3", className)}>
-      <Link href="/" className={cx(buttonClass({ variant: "primary" }), bigButton)}>
+      <Link href="/overview" className={cx(buttonClass({ variant: "primary" }), bigButton)}>
         Try the Product
         <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.25} />
       </Link>
@@ -148,7 +148,7 @@ const footer = [
   {
     label: "Program",
     links: [
-      { label: "Overview", href: "/" },
+      { label: "Overview", href: "/overview" },
       { label: "Setup", href: "/program" },
       { label: "Brief", href: "/brief" },
     ],
@@ -203,7 +203,7 @@ export default function WelcomePage() {
             >
               Ask the AI Team
             </Link>
-            <Link href="/" className={buttonClass({ variant: "primary", size: "sm" })}>
+            <Link href="/overview" className={buttonClass({ variant: "primary", size: "sm" })}>
               Try the Product
             </Link>
           </div>

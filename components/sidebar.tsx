@@ -22,7 +22,7 @@ const groups = [
   {
     label: "Program",
     links: [
-      { href: "/", label: "Overview", icon: LayoutGrid },
+      { href: "/overview", label: "Overview", icon: LayoutGrid },
       { href: "/program", label: "Setup", icon: SlidersHorizontal },
       { href: "/brief", label: "Brief", icon: FileText },
     ],
@@ -87,7 +87,7 @@ export function Sidebar({ name }: { name: string }) {
               {group.label}
             </div>
             {group.links.map(({ href, label, icon: Icon }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active = pathname.startsWith(href);
               return (
                 <Link
                   key={href}

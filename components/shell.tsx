@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 // The public pages run edge to edge with no app chrome: the landing page
 // and the page a brand shares with its creators.
 export const isPublic = (pathname: string) =>
-  pathname.startsWith("/welcome") || pathname === "/creators" || pathname.startsWith("/creators/");
+  pathname === "/" || pathname.startsWith("/welcome") || pathname === "/creators" || pathname.startsWith("/creators/");
 
 // The padded column every app screen sits in.
 export function Shell({ children }: { children: ReactNode }) {

@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
   if (!password) return NextResponse.next();
 
   const { pathname } = request.nextUrl;
-  if (OPEN.some((open) => pathname === open || pathname.startsWith(open))) {
+  if (pathname === "/" || OPEN.some((open) => pathname === open || pathname.startsWith(open))) {
     return NextResponse.next();
   }
 
