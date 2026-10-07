@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Brand, Brief, Creator } from "@/lib/data";
+import { saveImage } from "@/lib/media";
 import {
   computeMetrics,
   estimatedPayout,
@@ -134,14 +135,15 @@ export async function findCreators(
       ),
     }),
     run: async ({ creators }) => {
-      const rows = creators.flatMap((entry): Creator[] => {
-        const found = analyzed.get(entry.handle.replace(/^@/, ""));
-        if (!found) return [];
-        const { creator, metrics } = found;
+      const found = creators.flatMap((entry) => {
+        const match = analyzed.get(entry.handle.replace(/^@/, ""));
+        return match ? [{ entry, ...match }] : [];
+      });
+      const rows = await Promise.all(
+        found.map(async ({ entry, creator, metrics }): Promise<Creator> => {
         const score = overallScore(entry.fit, metrics, followerFit(creator.followers, brand));
         const verdict = verdictFor(score, entry.fit, metrics, creator, brand);
-        return [
-          {
+          return {
             handle: creator.handle,
             name: creator.name,
             platform: "TikTok",
@@ -156,9 +158,10 @@ export async function findCreators(
             reason: entry.reason,
             estimatedPayout: estimatedPayout(metrics, brand),
             url: `https://www.tiktok.com/@${creator.handle}`,
-          },
-        ];
-      });
+            avatar: await saveImage(creator.avatarLink, `avatar:${creator.handle}`),
+          };
+        }),
+      );
       if (rows.length === 0) return "None of those handles were analyzed. Submit analyzed creators.";
       roster = rows.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
       return `Roster saved with ${rows.length} creators.`;

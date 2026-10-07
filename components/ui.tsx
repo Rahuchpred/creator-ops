@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { BadgeCheck, Bot, Lightbulb, Search, Send, type LucideIcon } from "lucide-react";
+import { Avatar } from "@/components/media";
 import { cx } from "@/lib/format";
 
 type ButtonProps = ComponentProps<"button"> & {
@@ -117,51 +118,77 @@ export function AgentTile({ agent, size }: { agent: string; size?: keyof typeof 
   );
 }
 
-const pastels = [
-  "bg-[#e3edff] text-[#2a54a8]",
-  "bg-[#dff5e8] text-[#1c6b47]",
-  "bg-[#ffecd6] text-[#94500e]",
-  "bg-[#ffe3ef] text-[#a32c63]",
-  "bg-[#ebe5ff] text-[#5637b5]",
-  "bg-[#fff3c4] text-[#7a5a00]",
-];
-
-// The same handle always lands on the same pastel.
-const pastelFor = (handle: string) => {
-  let sum = 0;
-  for (const char of handle) sum = (sum * 31 + char.charCodeAt(0)) % 9973;
-  return pastels[sum % pastels.length];
-};
-
-export function Handle({ handle, name }: { handle: string; name?: string }) {
+export function Handle({
+  handle,
+  name,
+  avatar,
+}: {
+  handle: string;
+  name?: string;
+  avatar?: string;
+}) {
+  // Spans, so a handle can sit inside a button.
   return (
-    <div className="flex min-w-0 items-center gap-3">
-      <span
-        aria-hidden="true"
-        className={cx(
-          "grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold uppercase",
-          pastelFor(handle),
-        )}
-      >
-        {handle.slice(0, 2)}
-      </span>
-      <div className="min-w-0">
-        <div translate="no" className="truncate font-medium">
+    <span className="flex min-w-0 items-center gap-3 text-left">
+      <Avatar handle={handle} src={avatar} />
+      <span className="block min-w-0">
+        <span translate="no" className="block truncate font-medium">
           @{handle}
-        </div>
-        {name ? <div className="truncate text-xs text-faint">{name}</div> : null}
-      </div>
-    </div>
+        </span>
+        {name ? <span className="block truncate text-xs text-faint">{name}</span> : null}
+      </span>
+    </span>
   );
 }
 
-export const tableClass = {
-  // relative keeps visually hidden header text inside the scroller on phones.
-  wrap: "card relative overflow-x-auto",
-  table: "w-full min-w-[680px] border-collapse text-sm",
-  th: "h-11 px-5 text-left text-xs font-medium whitespace-nowrap text-faint",
-  thRight: "h-11 px-5 text-right text-xs font-medium whitespace-nowrap text-faint",
-  row: "border-t border-line",
-  td: "h-16 px-5 align-middle",
-  tdRight: "h-16 px-5 text-right align-middle whitespace-nowrap tabular-nums",
+// The small grey label over a group of things.
+export function SectionLabel({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="text-xs font-medium text-faint">
+      {children}
+    </h2>
+  );
+}
+
+const chipColor = {
+  violet: "bg-[#ebe5ff] text-[#5637b5]",
+  green: "bg-[#dff5e8] text-[#1c6b47]",
+  orange: "bg-[#ffecd6] text-[#94500e]",
 };
+
+// A compact colored number with a small icon. The label is read out, not shown.
+export function Chip({
+  color,
+  label,
+  icon: Icon,
+  children,
+}: {
+  color: keyof typeof chipColor;
+  label: string;
+  icon: LucideIcon;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cx(
+        "inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[11px] font-medium whitespace-nowrap tabular-nums",
+        chipColor[color],
+      )}
+    >
+      <Icon aria-hidden="true" className="size-3" strokeWidth={2.25} />
+      <span className="sr-only">{label}: </span>
+      {children}
+    </span>
+  );
+}
+
+// A card that opens something. Hover and keyboard focus look the same: the
+// card turns white, lifts a little and its edge darkens. Written out in
+// utilities, since the plain .card rule would outrank the hover state.
+export const cardButtonClass = cx(
+  "w-full cursor-pointer rounded-[20px] bg-soft text-left shadow-[0_0_0_1px_var(--color-line)]",
+  "transition-[translate,box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none",
+  "hover:-translate-y-0.5 hover:bg-surface hover:shadow-[0_0_0_1px_var(--color-fill-strong),0_14px_28px_-18px_rgb(16_17_20/0.28)]",
+  "focus-visible:-translate-y-0.5 focus-visible:bg-surface focus-visible:shadow-[0_0_0_1px_var(--color-fill-strong),0_14px_28px_-18px_rgb(16_17_20/0.28)]",
+  "active:translate-y-0 motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0",
+);

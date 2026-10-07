@@ -16,13 +16,21 @@ const client = new RocketRideClient({
 });
 
 await client.connect();
-const { token } = await client.use({ filepath: path.join(process.cwd(), "pipelines", "strategy.pipe") });
+// Optional second argument: another pipeline file, for isolating a problem.
+const file = process.argv[3] ?? path.join(process.cwd(), "pipelines", "strategy.pipe");
+const { token } = await client.use({ filepath: file });
 console.log("started", token.slice(0, 10));
 try {
   const question = new Question({ expectJson: true });
   question.addQuestion(process.argv[2] ?? "Brand: Lumen, a study timer app that locks your phone. Write the creator brief.");
   const started = Date.now();
-  const response = await client.chat({ token, question });
+  const response = await client.chat({
+    token,
+    question,
+    onSSE: async (type: string, data: unknown) => {
+      console.log(`${Math.round((Date.now() - started) / 1000)}s`, type, JSON.stringify(data).slice(0, 160));
+    },
+  });
   console.log(`answered in ${Math.round((Date.now() - started) / 1000)}s`);
   console.log(JSON.stringify(response).slice(0, 1500));
 } finally {

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "creator-ops": {
+      "command": "node",
+      "args": [
+        "--import",
+        "/Users/rahazh/Documents/dev/projects/creator-ops/node_modules/tsx/dist/loader.mjs",
+        "/Users/rahazh/Documents/dev/projects/creator-ops/mcp/server.ts"
+      ],
+      "env": {
+        "TSX_TSCONFIG_PATH": "/Users/rahazh/Documents/dev/projects/creator-ops/tsconfig.json"
+      }
+    }
+  }
+}

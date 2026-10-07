@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { BlueField } from "@/components/blue-field";
-import { Badge, Button, Handle, buttonClass, tableClass as t } from "@/components/ui";
+import { Badge, Button, Handle, SectionLabel, buttonClass } from "@/components/ui";
 import type { Payout, PayoutStatus } from "@/lib/data";
 import { formatMoney, formatNumber } from "@/lib/format";
 
@@ -13,7 +13,13 @@ const statusTone = {
   Paid: "good",
 } as const satisfies Record<PayoutStatus, string>;
 
-export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
+export function PayoutsList({
+  payouts,
+  avatars,
+}: {
+  payouts: Payout[];
+  avatars: Record<string, string>;
+}) {
   // Approvals live in memory until the database lands at the end of stage 1.
   const [approved, setApproved] = useState<string[]>([]);
   // The chosen row stays set while the dialog animates out, so its text does
@@ -25,12 +31,19 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
     approved.includes(payout.handle) ? { ...payout, status: "Approved" as const } : payout,
   );
   const waiting = rows.filter((row) => row.status === "Awaiting approval");
-  const waitingTotal = waiting.reduce((sum, row) => sum + row.amount, 0);
+  const settled = rows.filter((row) => row.status !== "Awaiting approval");
+  const total = (list: Payout[]) => list.reduce((sum, row) => sum + row.amount, 0);
 
   const approve = (handles: string[]) => {
     setApproved((current) => [...new Set([...current, ...handles])]);
     setOpen(false);
   };
+
+  // What is owed and what is done are two lists, each with its own total.
+  const groups = [
+    { id: "waiting", label: "Waiting for approval", rows: waiting },
+    { id: "settled", label: "Approved and paid", rows: settled },
+  ].filter((group) => group.rows.length > 0);
 
   return (
     <>
@@ -42,7 +55,7 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
         <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 md:p-9">
           <div aria-live="polite">
             <div className="text-4xl font-medium tracking-[-0.03em] tabular-nums md:text-5xl">
-              {formatMoney(waitingTotal)}
+              {formatMoney(total(waiting))}
             </div>
             <div className="mt-2 text-sm text-white/85">
               {waiting.length === 0
@@ -61,47 +74,54 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
         </div>
       </section>
 
-      <div className={t.wrap}>
-        <table className={t.table}>
-          <thead>
-            <tr>
-              <th scope="col" className={t.th}>Creator</th>
-              <th scope="col" className={t.thRight}>Approved posts</th>
-              <th scope="col" className={t.thRight}>Views</th>
-              <th scope="col" className={t.thRight}>Amount</th>
-              <th scope="col" className={t.th}>Status</th>
-              <th scope="col" className={t.thRight}>
-                <span className="sr-only">Action</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.handle} className={t.row}>
-                <td className={t.td}>
-                  <Handle handle={row.handle} />
-                </td>
-                <td className={t.tdRight}>{row.posts}</td>
-                <td className={t.tdRight}>{formatNumber(row.views)}</td>
-                <td className={`${t.tdRight} font-medium`}>{formatMoney(row.amount)}</td>
-                <td className={t.td}>
+      {groups.map((group) => (
+        <section key={group.id} aria-labelledby={group.id} className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <SectionLabel id={group.id}>{group.label}</SectionLabel>
+            <span className="text-xs text-faint tabular-nums">
+              {group.rows.length} {group.rows.length === 1 ? "creator" : "creators"},{" "}
+              {formatMoney(total(group.rows))}
+            </span>
+          </div>
+          <ul className="card">
+            {group.rows.map((row) => (
+              <li
+                key={row.handle}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-line px-4 py-3.5 text-sm not-first:border-t md:px-5"
+              >
+                <div className="min-w-0 flex-1 basis-44">
+                  <Handle
+                    handle={row.handle}
+                    name={`${row.posts} approved ${row.posts === 1 ? "post" : "posts"} · ${formatNumber(row.views)} views`}
+                    avatar={avatars[row.handle]}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 max-sm:w-full max-sm:flex-nowrap max-sm:justify-between">
                   <Badge tone={statusTone[row.status]}>{row.status}</Badge>
-                </td>
-                <td className={t.tdRight}>
+                  <span className="min-w-20 text-right text-base font-medium tracking-tight tabular-nums">
+                    {formatMoney(row.amount)}
+                  </span>
                   {row.status === "Awaiting approval" ? (
-                    <Button size="sm" onClick={() => {
+                    <Button
+                      size="sm"
+                      aria-label={`Approve the payout for @${row.handle}`}
+                      onClick={() => {
                         setPending(row);
                         setOpen(true);
-                      }}>
+                      }}
+                    >
                       Approve
                     </Button>
-                  ) : null}
-                </td>
-              </tr>
+                  ) : (
+                    // Holds the button's place so the amounts line up.
+                    <span aria-hidden="true" className="w-[76px] max-sm:hidden" />
+                  )}
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        </section>
+      ))}
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>

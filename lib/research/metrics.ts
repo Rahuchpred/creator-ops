@@ -5,7 +5,12 @@
 import type { Brand } from "@/lib/data";
 
 export type FetchedPost = {
+  id?: string;
   url?: string;
+  // TikTok's own signed image link. It expires, so it is saved to disk
+  // before anything is shown from it.
+  coverLink?: string;
+  durationSeconds?: number;
   caption: string;
   views: number;
   likes: number;
@@ -22,6 +27,7 @@ export type FetchedCreator = {
   language: string;
   followers: number;
   following: number;
+  avatarLink?: string;
   posts: FetchedPost[];
 };
 

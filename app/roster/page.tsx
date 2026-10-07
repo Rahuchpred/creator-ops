@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getRoster, missingResearchKeys } from "@/lib/store";
 import { RosterHeader } from "./roster-header";
-import { RosterTable } from "./roster-table";
+import { RosterRanking } from "./roster-ranking";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -12,7 +12,7 @@ async function RosterView() {
   return (
     <>
       <RosterHeader sample={sample} missingKeys={missingResearchKeys()} />
-      <RosterTable creators={creators} />
+      <RosterRanking creators={creators} />
     </>
   );
 }

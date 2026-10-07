@@ -8,16 +8,19 @@
     "start": "next start",
     "lint": "eslint",
     "agents": "node --env-file=.env.local --import tsx agents/worker.ts",
+    "mcp": "node --import tsx mcp/server.ts",
     "band:setup": "bun --env-file=.env.local scripts/band-setup.ts",
     "pipeline:check": "bun --env-file=.env.local scripts/pipeline-check.ts",
     "research:check": "bun --env-file=.env.local scripts/research-check.ts",
-    "review:check": "bun --env-file=.env.local scripts/review-check.ts"
+    "review:check": "bun --env-file=.env.local scripts/review-check.ts",
+    "pictures:backfill": "bun --env-file=.env.local scripts/backfill-pictures.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.0",
     "@band-ai/sdk": "^0.6.0",
     "@base-ui/react": "^1.8.0",
     "@glasser-ai/cli": "^0.1.65",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "lucide-react": "^1.52.0",
     "next": "16.4.0",
     "react": "19.3.0",

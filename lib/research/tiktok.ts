@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { promisify } from "node:util";
+import { pickImage } from "@/lib/media";
 import type { FetchedCreator, FetchedPost } from "./metrics";
 
 const run = promisify(execFile);
@@ -30,6 +31,8 @@ type Stats = {
 };
 
 type Video = {
+  aweme_id?: string;
+  video?: { cover?: { url_list?: string[] }; duration?: number };
   url?: string;
   desc?: string;
   is_ad?: boolean;
@@ -104,12 +107,23 @@ export async function searchVideos(
 }
 
 type Profile = {
-  user?: { uniqueId?: string; nickname?: string; signature?: string; language?: string };
+  user?: {
+    uniqueId?: string;
+    nickname?: string;
+    signature?: string;
+    language?: string;
+    avatarMedium?: string;
+    avatarThumb?: string;
+  };
   stats?: { followerCount?: number; followingCount?: number };
 };
 
 const toPost = (video: Video): FetchedPost => ({
+  id: video.aweme_id,
   url: video.url,
+  coverLink: pickImage(video.video?.cover?.url_list),
+  // TikTok reports length in milliseconds.
+  durationSeconds: video.video?.duration ? Math.round(video.video.duration / 1000) : undefined,
   // Kept long, because a disclosure tag often sits at the end of a caption.
   caption: (video.desc ?? "").slice(0, 1000),
   views: video.statistics?.play_count ?? 0,
@@ -136,6 +150,7 @@ export async function fetchCreator(handle: string, budget: Budget): Promise<Fetc
     language: profile.user?.language ?? "",
     followers: profile.stats?.followerCount ?? 0,
     following: profile.stats?.followingCount ?? 0,
+    avatarLink: profile.user?.avatarMedium ?? profile.user?.avatarThumb,
     posts: (videos.aweme_list ?? []).map(toPost),
   };
 }

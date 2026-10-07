@@ -48,6 +48,8 @@ export type Creator = {
   reason?: string;
   estimatedPayout?: number;
   url?: string;
+  // A local path to the creator's profile picture, when one was saved.
+  avatar?: string;
 };
 
 export type PostFlag =
@@ -77,6 +79,13 @@ export type Post = {
   engagementRate?: number;
   payout?: number;
   url?: string;
+  // Local paths to the video's cover image and the creator's profile
+  // picture, when they were saved. `likes` and `comments` come with them.
+  cover?: string;
+  avatar?: string;
+  durationSeconds?: number;
+  likes?: number;
+  comments?: number;
 };
 
 export type PayoutStatus = "Awaiting approval" | "Approved" | "Paid";

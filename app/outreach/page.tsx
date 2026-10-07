@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getOutreach, missingSalesKeys } from "@/lib/store";
+import { getOutreach, getRoster, missingSalesKeys } from "@/lib/store";
+import { OutreachGrid, type Recipient } from "./outreach-grid";
 import { OutreachHeader } from "./outreach-header";
-import { OutreachList } from "./outreach-list";
 
 export const metadata: Metadata = { title: "Outreach" };
 
 // Read per request, so drafts the Sales agent just wrote show on refresh.
+// A draft only carries a handle, so the name and picture come from the roster.
 async function OutreachView() {
-  const outreach = await getOutreach();
+  const [outreach, { creators }] = await Promise.all([getOutreach(), getRoster()]);
+  const people: Record<string, Recipient> = {};
+  for (const { handle, name, avatar, followers } of creators) {
+    people[handle] = { name, avatar, followers };
+  }
   return (
     <>
       <OutreachHeader missingKeys={missingSalesKeys()} />
-      <OutreachList outreach={outreach} />
+      <OutreachGrid outreach={outreach} people={people} />
     </>
   );
 }

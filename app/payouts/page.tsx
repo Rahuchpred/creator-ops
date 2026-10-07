@@ -5,7 +5,7 @@ import { brand, payouts as samplePayouts } from "@/lib/data";
 import { formatDollars, formatMoney, formatNumber } from "@/lib/format";
 import { payoutsFrom } from "@/lib/review/checks";
 import { getPosts } from "@/lib/store";
-import { PayoutsTable } from "./payouts-table";
+import { PayoutsList } from "./payouts-list";
 
 export const metadata: Metadata = { title: "Payouts" };
 
@@ -27,7 +27,11 @@ async function PayoutsView() {
       </div>
     );
   }
-  return <PayoutsTable payouts={payouts} />;
+
+  // A payout row only carries a handle, so the picture comes from the posts.
+  const avatars: Record<string, string> = {};
+  for (const post of posts) if (post.avatar) avatars[post.handle] = post.avatar;
+  return <PayoutsList payouts={payouts} avatars={avatars} />;
 }
 
 export default function PayoutsPage() {

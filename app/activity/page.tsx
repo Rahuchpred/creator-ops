@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ArrowRight } from "lucide-react";
-import { AgentTile, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { getActivity } from "@/lib/store";
+import { Timeline, type Day } from "./timeline";
 
 export const metadata: Metadata = { title: "Activity" };
 
-const time = new Intl.DateTimeFormat("en-US", {
-  month: "short",
+const dayLabel = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
   day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
 });
 
+const timeLabel = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
+
+// The dates are worded here, on the server, so every row arrives as plain
+// text and the timeline only has to open and close notes.
 async function Handoffs() {
   const activity = await getActivity();
 
@@ -25,30 +28,23 @@ async function Handoffs() {
     );
   }
 
-  return (
-    <ol className="card flex flex-col">
-      {activity.map((handoff) => (
-        <li
-          key={`${handoff.at}-${handoff.from}`}
-          className="border-line p-6 not-first:border-t"
-        >
-          <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-            <AgentTile agent={handoff.from} size="sm" />
-            {handoff.from}
-            <ArrowRight aria-hidden="true" className="mx-1 size-4 text-faint" />
-            <AgentTile agent={handoff.to} size="sm" />
-            {handoff.to}
-            <time dateTime={handoff.at} className="ml-auto text-xs font-normal text-faint tabular-nums">
-              {time.format(new Date(handoff.at))}
-            </time>
-          </div>
-          <p className="mt-3 max-w-[70ch] text-sm leading-relaxed break-words whitespace-pre-line text-muted">
-            {handoff.note}
-          </p>
-        </li>
-      ))}
-    </ol>
-  );
+  const days: Day[] = [];
+  for (const handoff of activity) {
+    const at = new Date(handoff.at);
+    const label = dayLabel.format(at);
+    if (days.at(-1)?.label !== label) days.push({ label, handoffs: [] });
+    days.at(-1)?.handoffs.push({
+      id: `${handoff.at}-${handoff.from}-${handoff.to}`,
+      at: handoff.at,
+      time: timeLabel.format(at),
+      from: handoff.from,
+      to: handoff.to,
+      summary: handoff.note.split("\n").find((line) => line.trim()) ?? "",
+      note: handoff.note,
+    });
+  }
+
+  return <Timeline days={days} />;
 }
 
 export default function ActivityPage() {
