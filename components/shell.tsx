@@ -3,8 +3,10 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-// The public landing page runs edge to edge with no app chrome.
-export const isPublic = (pathname: string) => pathname.startsWith("/welcome");
+// The public pages run edge to edge with no app chrome: the landing page
+// and the page a brand shares with its creators.
+export const isPublic = (pathname: string) =>
+  pathname.startsWith("/welcome") || pathname === "/creators" || pathname.startsWith("/creators/");
 
 // The padded column every app screen sits in.
 export function Shell({ children }: { children: ReactNode }) {

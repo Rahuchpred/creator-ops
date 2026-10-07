@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currentBrand, readPosts } from "@/lib/files";
+import { currentBrand, isBanned, readPosts } from "@/lib/files";
 import { payoutFor } from "@/lib/review/checks";
 import { savePosts } from "@/lib/store";
 
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
   }
 
   const status = body.data.status;
+  // A banned creator is never paid. The ban is lifted first.
+  if (status === "Approved" && (await isBanned(post.handle))) {
+    return Response.json(
+      { message: `@${post.handle} is banned from this program. Unban them before approving a post.` },
+      { status: 409 },
+    );
+  }
   const decided = {
     ...post,
     status,

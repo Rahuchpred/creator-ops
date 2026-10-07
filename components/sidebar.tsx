@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Send,
   SlidersHorizontal,
+  Trophy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const groups = [
     links: [
       { href: "/posts", label: "Posts", icon: Clapperboard },
       { href: "/payouts", label: "Payouts", icon: Wallet },
+      { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
     ],
   },
   {

@@ -9,6 +9,7 @@ import {
   type Creator,
   type Post,
 } from "@/lib/data";
+import { handleKey } from "@/lib/review/trust";
 
 // Files on disk stand in for the database until InstaCloud is connected.
 // Kept free of framework imports so the agent worker can use it too.
@@ -20,6 +21,7 @@ const POSTS = path.join(DIR, "posts.json");
 const ACTIVITY = path.join(DIR, "activity.json");
 const PROGRAM = path.join(DIR, "program.json");
 const PAYOUTS = path.join(DIR, "payouts.json");
+const BANS = path.join(DIR, "bans.json");
 
 // A drafted message to one creator. Nothing is sent until a person approves it.
 export type Outreach = OutreachDraft & {
@@ -33,6 +35,13 @@ export type PayoutApproval = {
   postId: string;
   amount: number;
   approvedAt: string;
+};
+
+// A creator a person banned from the program, for example for bought views.
+// Handles are saved lowercase and without the @.
+export type Ban = {
+  handle: string;
+  bannedAt: string;
 };
 
 export type Handoff = {
@@ -69,7 +78,7 @@ export async function saveProgram(brand: Brand): Promise<boolean> {
   let moved = false;
   if (before.name !== brand.name) {
     const archive = path.join(DIR, "archive", new Date().toISOString().replace(/[:.]/g, "-"));
-    for (const file of [BRIEF, ROSTER, OUTREACH, POSTS, ACTIVITY, PAYOUTS]) {
+    for (const file of [BRIEF, ROSTER, OUTREACH, POSTS, ACTIVITY, PAYOUTS, BANS]) {
       try {
         await mkdir(archive, { recursive: true });
         await rename(file, path.join(archive, path.basename(file)));
@@ -147,6 +156,15 @@ export const savePosts = (posts: Post[]) => write(POSTS, posts);
 
 export const readPayoutApprovals = async () => (await read<PayoutApproval[]>(PAYOUTS)) ?? [];
 export const savePayoutApprovals = (approvals: PayoutApproval[]) => write(PAYOUTS, approvals);
+
+export const readBans = async () => (await read<Ban[]>(BANS)) ?? [];
+export const saveBans = (bans: Ban[]) => write(BANS, bans);
+
+// Whether a person has banned this creator from the program.
+export async function isBanned(handle: string): Promise<boolean> {
+  const key = handleKey(handle);
+  return (await readBans()).some((ban) => ban.handle === key);
+}
 
 export const readActivity = async () => (await read<Handoff[]>(ACTIVITY)) ?? [];
 

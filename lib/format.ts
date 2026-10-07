@@ -29,6 +29,12 @@ const day = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+const month = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 export const formatCompact = (value: number) => compact.format(value);
 export const formatNumber = (value: number) => whole.format(value);
 export const formatDollars = (value: number) => dollars.format(value);
@@ -40,6 +46,9 @@ export const formatAmount = (value: number) =>
 export const formatPercent = (value: number) => percent.format(value);
 export const formatDecimal = (value: number) => decimal.format(value);
 export const formatDay = (iso: string) => day.format(new Date(`${iso}T00:00:00Z`));
+
+// Takes a month as "2026-10".
+export const formatMonth = (iso: string) => month.format(new Date(`${iso}-01T00:00:00Z`));
 
 export function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");

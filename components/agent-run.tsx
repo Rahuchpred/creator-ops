@@ -10,7 +10,7 @@ import { cx } from "@/lib/format";
 export type Run =
   | { state: "idle" }
   | { state: "running"; steps: string[] }
-  | { state: "done"; steps: string[]; seconds: number; at: Date }
+  | { state: "done"; steps: string[]; seconds: number; at: Date; result?: unknown }
   | { state: "failed"; steps: string[]; message: string };
 
 // Starts an agent, follows its steps as they stream in, and refreshes the
@@ -44,6 +44,7 @@ export function useAgentRun(endpoint: string) {
       const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
       let buffer = "";
       let finished = false;
+      let result: unknown;
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -59,6 +60,7 @@ export function useAgentRun(endpoint: string) {
             return fail(event.message);
           } else {
             finished = true;
+            result = event.result;
           }
         }
       }
@@ -69,6 +71,7 @@ export function useAgentRun(endpoint: string) {
         steps: steps.current,
         seconds: Math.round((Date.now() - began) / 1000),
         at: new Date(),
+        result,
       });
       router.refresh();
     } catch {

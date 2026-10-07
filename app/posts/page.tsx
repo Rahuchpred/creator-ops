@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getPosts, getProgram, missingReviewKeys } from "@/lib/store";
+import { getBans, getPosts, getProgram, missingReviewKeys } from "@/lib/store";
 import { PostsGrid } from "./posts-grid";
 import { PostsHeader } from "./posts-header";
 
@@ -8,7 +8,11 @@ export const metadata: Metadata = { title: "Posts" };
 
 // Read per request, so posts the Marketing agent just reviewed show on refresh.
 async function PostsView() {
-  const [{ posts, sample }, { brand }] = await Promise.all([getPosts(), getProgram()]);
+  const [{ posts, sample }, { brand }, banned] = await Promise.all([
+    getPosts(),
+    getProgram(),
+    getBans(),
+  ]);
   const submitted = posts.filter((post) => post.submitted).length;
   return (
     <>
@@ -25,7 +29,7 @@ async function PostsView() {
           post is added.
         </p>
       )}
-      <PostsGrid posts={posts} />
+      <PostsGrid posts={posts} banned={banned} canBan={!sample} />
     </>
   );
 }

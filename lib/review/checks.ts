@@ -6,6 +6,7 @@
 import type { Brand, Payout, Post, PostFlag, PostStatus } from "@/lib/data";
 import type { PayoutApproval } from "@/lib/files";
 import type { FetchedPost } from "@/lib/research/metrics";
+import { handleKey } from "@/lib/review/trust";
 
 export type ReviewFlag = NonNullable<PostFlag>;
 
@@ -18,6 +19,7 @@ const LOW_ENGAGEMENT_MIN_VIEWS = 10_000;
 const SHADOW_BAN_VIEWS = 1_000; // the playbook's line for a shadow ban or weak content
 const MIN_BRIEF_SCORE = 50; // below this the post does not clearly follow the brief
 const CLEAR_MISS = 35; // below this it plainly does not, and nobody needs to look
+const DUPLICATE_MIN_CAPTION = 12; // shorter captions ("#ad") match by chance too often
 
 // The brand's hard rule: every post is marked as a paid partnership. The
 // platform's own label arrives as `isAd`, so only the caption tags are
@@ -28,6 +30,7 @@ const DISCLOSURE_TAG = /#(ad|sponsored|partner)(?![a-z0-9_])/i;
 // `flag` field, and summaries name flags in this order.
 export const FLAG_ORDER: ReviewFlag[] = [
   "No disclosure",
+  "Duplicate",
   "View spike",
   "Low engagement",
   "Under 1,000 views",
@@ -68,6 +71,42 @@ export function flagsFor(post: FetchedPost, others: FetchedPost[]): ReviewFlag[]
   return FLAG_ORDER.filter((flag) => flags.has(flag));
 }
 
+const sameText = (caption: string) => caption.trim().toLowerCase().replace(/\s+/g, " ");
+
+// The saved post this one copies, if any. Two things count:
+//
+// 1. The same video id saved under a different creator.
+// 2. The same caption, letter for letter once case and spacing are evened
+//    out, and the same length in whole seconds, on a post by a different
+//    creator. The caption has to be at least 12 characters, and both posts
+//    need a known length.
+//
+// The post that went up first is the original, so a post dated before its
+// match is not the copy. On the same day both are flagged and a person
+// decides. The same creator handing the same video in twice is not a
+// duplicate: the saved row is refreshed, so it can never be paid twice.
+export function duplicateOf(
+  post: Pick<Post, "id" | "handle" | "caption" | "postedAt" | "durationSeconds">,
+  saved: Post[],
+): Post | undefined {
+  const text = sameText(post.caption);
+  const seconds = post.durationSeconds === undefined ? null : Math.round(post.durationSeconds);
+  return saved.find((other) => {
+    if (handleKey(other.handle) === handleKey(post.handle)) return false;
+    if (other.id === post.id) return true;
+    if (text.length < DUPLICATE_MIN_CAPTION || seconds === null) return false;
+    if (other.durationSeconds === undefined || Math.round(other.durationSeconds) !== seconds) {
+      return false;
+    }
+    if (sameText(other.caption) !== text) return false;
+    return !(post.postedAt && other.postedAt && post.postedAt < other.postedAt);
+  });
+}
+
+// Adds "Duplicate" to a post's flags, keeping the most serious first.
+export const withDuplicate = (flags: ReviewFlag[]): ReviewFlag[] =>
+  FLAG_ORDER.filter((flag) => flag === "Duplicate" || flags.includes(flag));
+
 // `briefScore` is the model's 0 to 100 judgment of how well the post follows
 // the brief. The checks run in this order and the first one that applies
 // wins:
@@ -78,11 +117,12 @@ export function flagsFor(post: FetchedPost, others: FetchedPost[]): ReviewFlag[]
 //    the brief is not paid however real its views are.
 // 3. Brief score from 35 to 49: In review. It follows part of the brief,
 //    and a person who can watch the video makes the call.
-// 4. View spike or Low engagement: In review. The post follows the brief
-//    but its views may not be real, and a person decides before money moves.
+// 4. View spike, Low engagement or Duplicate: In review. The post follows
+//    the brief but its views may not be real, or the video may be someone
+//    else's, and a person decides before money moves.
 // 5. Otherwise: Approved.
 //
-// So any of the three blocking flags keeps a post from "Approved" whatever
+// So any of the four blocking flags keeps a post from "Approved" whatever
 // its score, and the model cannot talk a post past them. "Under 1,000 views"
 // is a signal for the person reading, not a blocker: such a post is far
 // below the brand's minimum views and earns nothing either way.
@@ -91,6 +131,7 @@ export function verdictFor(briefScore: number, flags: ReviewFlag[]): PostStatus 
   if (briefScore < CLEAR_MISS) return "Rejected";
   if (briefScore < MIN_BRIEF_SCORE) return "In review";
   if (flags.includes("View spike") || flags.includes("Low engagement")) return "In review";
+  if (flags.includes("Duplicate")) return "In review";
   return "Approved";
 }
 

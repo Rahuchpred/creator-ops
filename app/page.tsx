@@ -3,9 +3,11 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Check, Eye, Send, Wallet, type LucideIcon } from "lucide-react";
 import { BlueField } from "@/components/blue-field";
+import { BudgetTracker } from "@/components/budget-tracker";
 import { AgentTile, Badge, PageHeader, Tile, buttonClass, type TileColor } from "@/components/ui";
 import { totals } from "@/lib/data";
 import { formatCompact, formatDollars, formatMoney } from "@/lib/format";
+import { budgetFor, sampleLedger } from "@/lib/review/budget";
 import { payoutsByApproval } from "@/lib/review/checks";
 import {
   getBrief,
@@ -86,6 +88,9 @@ async function Overview() {
     (sum, payout) => sum + payout.amount,
     0,
   );
+  // The month is read after the saved data, so it is today's on every request.
+  const month = new Date().toISOString().slice(0, 7);
+  const ledger = sampleNumbers ? sampleLedger(month) : budgetFor(posts, approvals, brand, month);
   const share = (spend: number) => `${Math.round((spend / brand.monthlyBudget) * 100)}%`;
 
   const stats = sampleNumbers
@@ -175,6 +180,8 @@ async function Overview() {
           ))}
         </dl>
       </section>
+
+      <BudgetTracker ledger={ledger} />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <section className="card p-6" aria-labelledby="needs-you">

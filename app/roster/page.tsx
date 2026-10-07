@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getRoster, missingResearchKeys } from "@/lib/store";
+import { getBans, getRoster, missingResearchKeys } from "@/lib/store";
 import { RosterHeader } from "./roster-header";
 import { RosterRanking } from "./roster-ranking";
 
@@ -8,11 +8,11 @@ export const metadata: Metadata = { title: "Roster" };
 
 // Read per request, so a roster the Research agent just built shows on refresh.
 async function RosterView() {
-  const { creators, sample } = await getRoster();
+  const [{ creators, sample }, banned] = await Promise.all([getRoster(), getBans()]);
   return (
     <>
       <RosterHeader sample={sample} missingKeys={missingResearchKeys()} />
-      <RosterRanking creators={creators} />
+      <RosterRanking creators={creators} banned={sample ? [] : banned} />
     </>
   );
 }

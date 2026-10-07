@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import type { Creator, CreatorStatus } from "@/lib/data";
 import { cx, formatCompact, formatMoney } from "@/lib/format";
+import { handleKey } from "@/lib/review/trust";
 
 const filters = ["All", "Suggested", "Contacted", "Onboarded", "Declined", "Rejected"] as const;
 type Filter = (typeof filters)[number];
@@ -28,8 +29,8 @@ const statusTone = {
 } as const satisfies Record<CreatorStatus, string>;
 
 // Creators who said no or were screened out are not candidates, so they sit
-// under the ranking and carry no rank.
-const out = (creator: Creator) => creator.status === "Rejected" || creator.status === "Declined";
+// under the ranking and carry no rank. So does anyone a person banned.
+const left = (creator: Creator) => creator.status === "Rejected" || creator.status === "Declined";
 const scoreOf = (creator: Creator) => creator.score ?? creator.fit;
 const rate = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 const percent = (value: number) => rate.format(value);
@@ -58,10 +59,11 @@ function Score({ value }: { value: number }) {
 }
 
 // The status, then the flags. A row has room for one flag by name.
-function Marks({ creator, all }: { creator: Creator; all?: boolean }) {
+function Marks({ creator, all, banned }: { creator: Creator; all?: boolean; banned?: boolean }) {
   const flags = creator.flags ?? [];
   return (
     <>
+      {banned ? <Badge tone="bad">Banned</Badge> : null}
       <Badge tone={statusTone[creator.status]}>{creator.status}</Badge>
       {all || flags.length === 1 ? (
         flags.map((flag) => (
@@ -76,7 +78,16 @@ function Marks({ creator, all }: { creator: Creator; all?: boolean }) {
   );
 }
 
-export function RosterRanking({ creators }: { creators: Creator[] }) {
+export function RosterRanking({
+  creators,
+  banned = [],
+}: {
+  creators: Creator[];
+  // Handles a person banned from the program, lowercase.
+  banned?: string[];
+}) {
+  const isBanned = (creator: Creator) => banned.includes(handleKey(creator.handle));
+  const out = (creator: Creator) => left(creator) || isBanned(creator);
   // The tab and the search live in the URL so a filtered roster can be linked.
   const params = useSearchParams();
   const fromUrl = params.get("status") as Filter | null;
@@ -292,7 +303,7 @@ export function RosterRanking({ creators }: { creators: Creator[] }) {
             <div>
               <SectionLabel id="not-ranked">Not in the ranking</SectionLabel>
               <p className="mt-1 text-[13px] text-pretty text-faint">
-                Screened out or said no. Open one to read why.
+                Screened out, banned or said no. Open one to read why.
               </p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -310,7 +321,11 @@ export function RosterRanking({ creators }: { creators: Creator[] }) {
                         avatar={creator.avatar}
                       />
                     </span>
-                    <Badge tone={statusTone[creator.status]}>{creator.status}</Badge>
+                    {isBanned(creator) ? (
+                      <Badge tone="bad">Banned</Badge>
+                    ) : (
+                      <Badge tone={statusTone[creator.status]}>{creator.status}</Badge>
+                    )}
                   </button>
                 </li>
               ))}
@@ -338,8 +353,14 @@ export function RosterRanking({ creators }: { creators: Creator[] }) {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Marks creator={chosen} all />
+              <Marks creator={chosen} all banned={isBanned(chosen)} />
             </div>
+            {isBanned(chosen) ? (
+              <p className="rounded-[14px] bg-bad-soft px-4 py-3 text-sm text-pretty text-bad">
+                Banned from the program. Their posts are rejected and new ones are refused. Open
+                one of their posts to lift the ban.
+              </p>
+            ) : null}
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <Fact label="Score" value={scoreOf(chosen)} />
               <Fact label="Followers" value={formatCompact(chosen.followers)} />

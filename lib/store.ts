@@ -11,6 +11,7 @@ import {
 import {
   currentBrief,
   readActivity,
+  readBans,
   readOutreach,
   readPayoutApprovals,
   readPosts,
@@ -66,6 +67,12 @@ export async function getPosts(): Promise<{ posts: Post[]; sample: boolean }> {
 export async function getPayoutApprovals(): Promise<PayoutApproval[]> {
   await connection();
   return readPayoutApprovals();
+}
+
+// The handles a person has banned from the program, lowercase.
+export async function getBans(): Promise<string[]> {
+  await connection();
+  return (await readBans()).map((ban) => ban.handle);
 }
 
 export async function getActivity(): Promise<Handoff[]> {

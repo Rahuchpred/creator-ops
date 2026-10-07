@@ -2,21 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog } from "@base-ui/react/dialog";
 import { ArrowUpRight, Eye, Heart, Target } from "lucide-react";
-import { DetailDialog, Fact } from "@/components/detail-dialog";
+import { Spinner } from "@/components/agent-run";
+import {
+  DetailDialog,
+  Fact,
+  backdropClass,
+  popupMotionClass,
+} from "@/components/detail-dialog";
 import { Avatar, Cover } from "@/components/media";
+import { TrustBadge, TrustReasons } from "@/components/trust";
 import { Badge, Button, Chip, Handle, buttonClass, cardButtonClass } from "@/components/ui";
 import { payoutForPost, type Post } from "@/lib/data";
 import { cx, formatCompact, formatDay, formatMoney, formatNumber } from "@/lib/format";
+import { duplicateOf } from "@/lib/review/checks";
+import { flagsOf, handleKey, trustFor } from "@/lib/review/trust";
 
 const statusTone = {
   Approved: "good",
   "In review": "brand",
   Rejected: "bad",
 } as const satisfies Record<Post["status"], string>;
-
-// Reviewed posts carry their own flag list. Sample rows only have the one.
-const flagsOf = (post: Post) => post.flags ?? (post.flag ? [post.flag] : []);
 
 function earns(post: Post) {
   if (post.status === "Rejected") return "Nothing";
@@ -51,7 +58,17 @@ function Metrics({ post }: { post: Post }) {
   );
 }
 
-export function PostsGrid({ posts }: { posts: Post[] }) {
+export function PostsGrid({
+  posts,
+  banned,
+  canBan,
+}: {
+  posts: Post[];
+  // Handles a person banned, lowercase.
+  banned: string[];
+  // False for the sample rows, which belong to no saved creator.
+  canBan: boolean;
+}) {
   // The chosen post stays set while the dialog animates out, so its content
   // does not blank mid-close.
   const [chosen, setChosen] = useState<Post | null>(null);
@@ -82,6 +99,59 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
     }
   };
 
+  // A ban or unban made a moment ago, shown before the page data catches up.
+  const [changed, setChanged] = useState<Record<string, boolean>>({});
+  const isBanned = (handle: string) => changed[handleKey(handle)] ?? banned.includes(handleKey(handle));
+  const [asking, setAsking] = useState(false);
+  const [banning, setBanning] = useState(false);
+  const [banProblem, setBanProblem] = useState("");
+  const [notice, setNotice] = useState("");
+
+  // Bans the creator, or lifts the ban. A ban rejects their saved posts, and
+  // those come back so the open post shows its new status.
+  const setBan = async (post: Post, ban: boolean) => {
+    setBanning(true);
+    setBanProblem("");
+    try {
+      const response = await fetch("/api/creators/ban", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle: post.handle, banned: ban }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+        posts?: Post[];
+      } | null;
+      if (!response.ok || !body) {
+        throw new Error(body?.message ?? "The change was not saved. Try again.");
+      }
+      setChanged((current) => ({ ...current, [handleKey(post.handle)]: ban }));
+      const fresh = body.posts?.find((row) => row.id === post.id);
+      if (fresh) setChosen(fresh);
+      const count = body.posts?.length ?? 0;
+      setNotice(
+        ban
+          ? `@${post.handle} is banned. ${count === 1 ? "Their 1 post is" : `Their ${count} posts are`} rejected and earn nothing.`
+          : `@${post.handle} can hand in posts again. Nothing else changed.`,
+      );
+      setAsking(false);
+      router.refresh();
+    } catch (error) {
+      setBanProblem(error instanceof Error ? error.message : "The change was not saved. Try again.");
+    } finally {
+      setBanning(false);
+    }
+  };
+
+  const chosenBanned = chosen ? isBanned(chosen.handle) : false;
+  // The score counts program posts only, so a test row has none.
+  const theirs = chosen
+    ? posts.filter((post) => post.submitted && handleKey(post.handle) === handleKey(chosen.handle))
+    : [];
+  const trust = theirs.length > 0 ? trustFor(theirs, chosenBanned) : null;
+  const copied =
+    chosen && flagsOf(chosen).includes("Duplicate") ? duplicateOf(chosen, posts) : undefined;
+
   if (posts.length === 0) {
     return (
       <p className="card p-10 text-center text-sm text-muted">
@@ -101,14 +171,17 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
                 type="button"
                 onClick={() => {
                   setChosen(post);
+                  setProblem("");
+                  setNotice("");
                   setOpen(true);
                 }}
                 className={cx(cardButtonClass, "flex h-full flex-col p-2 text-sm")}
               >
                 <span className="relative block">
                   <Cover src={post.cover} alt="" className="aspect-[3/4] w-full rounded-[14px]" />
-                  <span className="absolute top-2 left-2">
+                  <span className="absolute top-2 left-2 flex flex-wrap gap-1 pr-2">
                     <Badge tone={statusTone[post.status]}>{post.status}</Badge>
+                    {isBanned(post.handle) ? <Badge tone="bad">Banned</Badge> : null}
                   </span>
                   {post.durationSeconds ? (
                     <span className="absolute right-2 bottom-2 rounded-full bg-ink/70 px-1.5 py-0.5 text-[11px] font-medium text-white tabular-nums">
@@ -171,7 +244,9 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
               />
               <div className="flex flex-wrap items-center gap-1.5">
                 <Badge tone={statusTone[chosen.status]}>{chosen.status}</Badge>
+                {chosenBanned ? <Badge tone="bad">Banned</Badge> : null}
                 {chosen.decidedBy ? <Badge>Your call</Badge> : null}
+                {trust && !chosenBanned ? <TrustBadge trust={trust} /> : null}
                 {flagsOf(chosen).map((flag) => (
                   <Badge key={flag} tone="warn">
                     {flag}
@@ -220,15 +295,24 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
                   <Fact label="Length" value={length(chosen.durationSeconds)} />
                 ) : null}
               </dl>
+              {copied ? (
+                <p className="rounded-[14px] bg-warn-soft px-4 py-3 text-sm text-pretty text-warn">
+                  This matches a post <span translate="no">@{copied.handle}</span> already handed
+                  in: the same {copied.id === chosen.id ? "video" : "caption and length"}. It is
+                  held until you decide whose it is.
+                </p>
+              ) : null}
               {chosen.feedback !== undefined ? (
                 <div className="flex flex-col gap-2 rounded-[16px] bg-fill p-4">
                   <p className="text-sm text-pretty">
-                    {chosen.status === "In review"
-                      ? "This post is held for you. Approve it to pay it, or reject it."
-                      : "The final call is yours. Watch the video, then change it if you disagree."}
+                    {chosenBanned
+                      ? "This creator is banned, so their posts cannot be approved."
+                      : chosen.status === "In review"
+                        ? "This post is held for you. Approve it to pay it, or reject it."
+                        : "The final call is yours. Watch the video, then change it if you disagree."}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {chosen.status !== "Approved" ? (
+                    {chosen.status !== "Approved" && !chosenBanned ? (
                       <Button
                         variant={chosen.status === "In review" ? "primary" : "secondary"}
                         size="sm"
@@ -250,6 +334,82 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
                     </p>
                   ) : null}
                 </div>
+              ) : null}
+              {canBan ? (
+                <section
+                  aria-labelledby="creator-trust"
+                  className="flex flex-col gap-3 rounded-[16px] p-4 shadow-[0_0_0_1px_var(--color-line)]"
+                >
+                  <h3 id="creator-trust" className="text-sm font-semibold tracking-tight">
+                    Creator trust{trust ? `: ${trust.score} of 100` : ""}
+                  </h3>
+                  {trust ? (
+                    <TrustReasons trust={trust} />
+                  ) : (
+                    <p className="text-[13px] text-pretty text-muted">
+                      No score yet. It is worked out from program posts, and this is a test row.
+                    </p>
+                  )}
+                  <p role="status" aria-live="polite" className="text-[13px] text-pretty empty:hidden">
+                    {notice}
+                  </p>
+                  <Dialog.Root
+                    open={asking}
+                    onOpenChange={(next) => {
+                      setAsking(next);
+                      setBanProblem("");
+                    }}
+                  >
+                    <Dialog.Trigger
+                      className={cx(
+                        buttonClass({ size: "sm" }),
+                        "self-start",
+                        !chosenBanned && "!text-bad",
+                      )}
+                    >
+                      {chosenBanned ? "Unban Creator" : "Ban Creator"}
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                      <Dialog.Backdrop className={backdropClass} />
+                      <Dialog.Popup
+                        className={cx(
+                          "fixed top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overscroll-contain rounded-[24px] bg-surface p-6 shadow-[0_0_0_1px_var(--color-line),0_24px_60px_-20px_rgb(16_17_20/0.3)]",
+                          popupMotionClass,
+                        )}
+                      >
+                        <Dialog.Title className="text-xl font-medium tracking-[-0.02em]">
+                          {chosenBanned ? "Unban" : "Ban"}{" "}
+                          <span translate="no">@{chosen.handle}</span>?
+                        </Dialog.Title>
+                        <Dialog.Description className="mt-2 text-sm text-pretty text-muted">
+                          {chosenBanned
+                            ? "This only lets them hand in posts again. Nothing is restored: their posts stay rejected until you approve each one yourself."
+                            : "Every post they have in the program becomes Rejected and earns nothing, and new posts from them are refused. Lifting the ban later does not bring those posts back."}
+                        </Dialog.Description>
+                        {banProblem ? (
+                          <p
+                            role="alert"
+                            className="mt-4 rounded-[14px] bg-bad-soft px-4 py-3 text-sm text-bad"
+                          >
+                            {banProblem}
+                          </p>
+                        ) : null}
+                        <div className="mt-6 flex justify-end gap-2">
+                          <Dialog.Close className={buttonClass()}>Cancel</Dialog.Close>
+                          <Button
+                            variant={chosenBanned ? "primary" : "secondary"}
+                            className={chosenBanned ? undefined : "!text-bad"}
+                            disabled={banning}
+                            onClick={() => setBan(chosen, !chosenBanned)}
+                          >
+                            {banning ? <Spinner /> : null}
+                            {banning ? "Saving…" : chosenBanned ? "Unban Creator" : "Ban Creator"}
+                          </Button>
+                        </div>
+                      </Dialog.Popup>
+                    </Dialog.Portal>
+                  </Dialog.Root>
+                </section>
               ) : null}
               {chosen.url ? (
                 <a

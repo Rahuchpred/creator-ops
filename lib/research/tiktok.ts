@@ -213,3 +213,14 @@ export async function fetchHashtagPosts(
       : [];
   });
 }
+
+// One video by its link: one paid call. Used for a video too old to be in
+// the creator's recent posts. Nothing when it cannot be found.
+export async function fetchVideo(url: string, budget: Budget): Promise<FetchedPost | null> {
+  try {
+    const output = await glasser<{ aweme_detail?: Video }>("/v2/tiktok/video", { url, trim: true }, budget);
+    return output.aweme_detail?.aweme_id ? toPost(output.aweme_detail) : null;
+  } catch {
+    return null;
+  }
+}

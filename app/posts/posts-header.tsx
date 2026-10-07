@@ -1,9 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { Link2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, Link2, Share2 } from "lucide-react";
 import { AgentRunPanel, MissingKeys, Spinner, useAgentRun } from "@/components/agent-run";
 import { Badge, Button, PageHeader, Tile } from "@/components/ui";
+
+// Copies the address of the public creator page, the one link a brand
+// shares so creators can hand in videos themselves.
+function CopyCreatorLink() {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const copy = async () => {
+    const link = new URL("/creators", window.location.origin).href;
+    try {
+      await navigator.clipboard.writeText(link);
+      setState("copied");
+    } catch {
+      setState("failed");
+    }
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setState("idle"), 2500);
+  };
+
+  return (
+    <>
+      <Button variant="quiet" onClick={copy}>
+        {state === "copied" ? (
+          <Check aria-hidden="true" className="size-4 text-good" strokeWidth={2.5} />
+        ) : (
+          <Share2 aria-hidden="true" className="size-4" />
+        )}
+        {state === "copied" ? "Copied" : state === "failed" ? "Could Not Copy" : "Copy Creator Link"}
+      </Button>
+      <span aria-live="polite" className="sr-only">
+        {state === "copied"
+          ? "Creator page link copied. Share it with your creators."
+          : state === "failed"
+            ? "The link could not be copied. The creator page is at /creators."
+            : ""}
+      </span>
+    </>
+  );
+}
 
 export function PostsHeader({
   sample,
@@ -32,6 +71,7 @@ export function PostsHeader({
         description="Videos creators posted for the program, scored against the brief. Held posts wait for your call."
       >
         {sample ? <Badge>Sample data</Badge> : null}
+        <CopyCreatorLink />
         {hashtag ? (
           <Button variant="primary" onClick={tagged.start} disabled={blocked}>
             {tagged.running ? <Spinner /> : null}

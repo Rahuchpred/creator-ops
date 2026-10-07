@@ -2,17 +2,26 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { Brand, Brief, Post } from "@/lib/data";
-import { readPosts, readRoster } from "@/lib/files";
+import { isBanned, readBans, readPosts, readRoster } from "@/lib/files";
 import { saveImage } from "@/lib/media";
 import type { FetchedPost } from "@/lib/research/metrics";
 import {
   fetchCreator,
   fetchHashtagPosts,
   fetchTranscript,
+  fetchVideo,
   type Budget,
 } from "@/lib/research/tiktok";
 import { readVideoLink } from "@/lib/review/link";
-import { engagementRate, flagsFor, payoutFor, verdictFor } from "@/lib/review/checks";
+import {
+  duplicateOf,
+  engagementRate,
+  flagsFor,
+  payoutFor,
+  verdictFor,
+  withDuplicate,
+} from "@/lib/review/checks";
+import { handleKey } from "@/lib/review/trust";
 
 const MODEL = "claude-opus-5-5";
 
@@ -214,7 +223,12 @@ async function fetchSubmitted(
   const found: Candidate[] = [];
   const missing: string[] = [];
   for (const { videoId, before } of wanted) {
-    const post = creator.posts.find((candidate) => candidate.id === videoId);
+    // An older video is not in the recent posts, so it is looked up by link.
+    const post =
+      creator.posts.find((candidate) => candidate.id === videoId) ??
+      (budget.callsLeft > 0
+        ? await fetchVideo(`https://www.tiktok.com/@${handle}/video/${videoId}`, budget)
+        : null);
     if (!post) {
       missing.push(videoId);
       continue;
@@ -225,7 +239,7 @@ async function fetchSubmitted(
       name: creator.name,
       avatarLink: creator.avatarLink,
       post,
-      others: creator.posts.filter((other) => other !== post),
+      others: creator.posts.filter((other) => other.id !== videoId),
       submitted: true,
       before,
     });
@@ -235,12 +249,14 @@ async function fetchSubmitted(
 
 // Scores the candidates and builds the rows to save. The model's part ends
 // with the score and the sentence. Flags, verdict and payout are computed
-// from the post's numbers.
+// from the post's numbers. `saved` are the program posts already on file,
+// which each candidate is checked against for a duplicate.
 async function review(
   brand: Brand,
   brief: Brief,
   candidates: Candidate[],
   onStep: (label: string) => void,
+  saved: Post[] = [],
 ): Promise<Post[]> {
   // Program posts are worth one more call each to hear what is said. Test
   // rows are judged on the caption alone.
@@ -258,13 +274,24 @@ async function review(
   const judgments = await judge(brand, brief, candidates, onStep);
 
   onStep("Checking views, disclosure and payouts");
+  const banned = new Set((await readBans()).map((ban) => ban.handle));
   const scored = candidates.map(({ id, handle, name, post, others, submitted, before, transcript }): Post => {
     const { briefScore: raw, feedback } = judgments.get(id)!;
     const briefScore = Math.round(Math.max(0, Math.min(100, raw)));
-    const flags = flagsFor(post, others);
+    const found = flagsFor(post, others);
+    const copy = duplicateOf(
+      { id, handle, caption: post.caption, postedAt: postedOn(post), durationSeconds: post.durationSeconds },
+      saved,
+    );
+    const flags = copy ? withDuplicate(found) : found;
     // A person's call on a held post stands. Only the numbers move.
     const decided = before?.decidedBy === "person";
-    const status = decided ? before.status : verdictFor(briefScore, flags);
+    // A banned creator is never paid, whatever the post looks like.
+    const status = banned.has(handleKey(handle))
+      ? "Rejected"
+      : decided
+        ? before.status
+        : verdictFor(briefScore, flags);
     return {
       id,
       handle,
@@ -330,7 +357,7 @@ export async function reviewPosts(
     byHandle.set(post.handle, [...(byHandle.get(post.handle) ?? []), post]);
   }
 
-  const budget: Budget = { callsLeft: SUBMITTERS * 2 };
+  const budget: Budget = { callsLeft: SUBMITTERS * 2 + submitted.length };
   const candidates: Candidate[] = [];
   // Rows that could not be refreshed are kept as they were, never dropped.
   const kept: Post[] = [];
@@ -356,12 +383,16 @@ export async function reviewPosts(
     }
   }
 
-  const rows = candidates.length > 0 ? await review(brand, brief, candidates, onStep) : [];
+  const rows =
+    candidates.length > 0 ? await review(brand, brief, candidates, onStep, submitted) : [];
+  const banned = new Set((await readBans()).map((ban) => ban.handle));
   // An older post that could not be fetched keeps its last numbers, and its
   // verdict is worked out again from them so the current rules apply.
   const settled = kept.map((post): Post => {
     if (post.decidedBy === "person") return post;
-    const status = verdictFor(post.briefScore, post.flags ?? []);
+    const status = banned.has(handleKey(post.handle))
+      ? "Rejected"
+      : verdictFor(post.briefScore, post.flags ?? []);
     return { ...post, status, payout: payoutFor({ status, views: post.views }, brand) };
   });
   const all = [...rows, ...settled];
@@ -380,19 +411,24 @@ export async function reviewLink(
 ): Promise<{ post: Post; posts: Post[] }> {
   onStep("Reading the link");
   const { handle, videoId } = await readVideoLink(link);
+  if (await isBanned(handle)) {
+    throw new Error(
+      `@${handle} is banned from this program, so this post was not added. Unban them from one of their posts to let them hand in again.`,
+    );
+  }
 
   const saved = ((await readPosts()) ?? []).filter((post) => post.submitted);
   const before = saved.find((post) => post.id === videoId);
 
   onStep(`Fetching the video and @${handle}'s recent posts`);
-  const { found } = await fetchSubmitted(handle, [{ videoId, before }], { callsLeft: 2 });
+  const { found } = await fetchSubmitted(handle, [{ videoId, before }], { callsLeft: 3 });
   if (found.length === 0) {
     throw new Error(
-      `That video is not among @${handle}'s recent posts. Check the link, or wait a few minutes if it was just posted.`,
+      `That video could not be found on @${handle}'s account. Check the link, or wait a few minutes if it was just posted.`,
     );
   }
 
-  const [post] = await review(brand, brief, found, onStep);
+  const [post] = await review(brand, brief, found, onStep, saved);
   onStep(
     post.status === "Approved"
       ? `Approved. It earns $${(post.payout ?? 0).toFixed(2)} so far`
@@ -418,13 +454,20 @@ export async function trackHashtag(
   const budget: Budget = { callsLeft: 1 + TRACKED * 2 };
   const found = await fetchHashtagPosts(brand.hashtag, budget);
   // The most watched new posts first, since those are the ones that earn.
+  const banned = new Set((await readBans()).map((ban) => ban.handle));
+  const skipped = found.filter(
+    (video) => !known.has(video.videoId) && banned.has(handleKey(video.handle)),
+  ).length;
   const fresh = found
-    .filter((video) => !known.has(video.videoId))
+    .filter((video) => !known.has(video.videoId) && !banned.has(handleKey(video.handle)))
     .sort((a, b) => b.post.views - a.post.views)
     .slice(0, TRACKED);
   onStep(
     `${found.length} ${found.length === 1 ? "post carries" : "posts carry"} the tag, ${fresh.length} of them new here`,
   );
+  if (skipped > 0) {
+    onStep(`Skipped ${skipped} ${skipped === 1 ? "post" : "posts"} by banned creators`);
+  }
   if (fresh.length === 0) return { added: [], posts: saved };
 
   // The tagged post is reviewed as found. The creator's other posts are
@@ -453,7 +496,7 @@ export async function trackHashtag(
     });
   }
 
-  const added = await review(brand, brief, candidates, onStep);
+  const added = await review(brand, brief, candidates, onStep, saved);
   onStep(`Added ${added.length} ${added.length === 1 ? "post" : "posts"}: ${summary(added)}`);
   return { added, posts: [...added, ...saved] };
 }

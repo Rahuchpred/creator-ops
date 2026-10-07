@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export type AgentEvent =
   | { type: "step"; label: string }
-  | { type: "done" }
+  // `result` is whatever the work returned, for a page that shows it at once.
+  | { type: "done"; result?: unknown }
   | { type: "error"; message: string };
 
 export function explain(error: unknown) {
@@ -26,7 +27,7 @@ export function explain(error: unknown) {
 export function streamAgent(
   name: string,
   missingKeys: string[],
-  work: (step: (label: string) => void) => Promise<void>,
+  work: (step: (label: string) => void) => Promise<unknown>,
 ) {
   if (missingKeys.length > 0) {
     return Response.json(
@@ -41,8 +42,8 @@ export function streamAgent(
       const send = (event: AgentEvent) =>
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
-        await work((label) => send({ type: "step", label }));
-        send({ type: "done" });
+        const result = await work((label) => send({ type: "step", label }));
+        send({ type: "done", ...(result === undefined ? {} : { result }) });
       } catch (error) {
         console.error(`${name} agent failed`, error);
         send({ type: "error", message: explain(error) });

@@ -62,6 +62,8 @@ export type PostFlag =
   | "Low engagement"
   | "Under 1,000 views"
   | "No disclosure"
+  // The same video as one another creator already handed in.
+  | "Duplicate"
   | null;
 export type PostStatus = "In review" | "Approved" | "Rejected";
 
