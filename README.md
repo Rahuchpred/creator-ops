@@ -76,6 +76,7 @@ Results from step 6 feed the next brief and the next creator search.
 
 ## More
 
+- [docs/hackathon-brief.md](docs/hackathon-brief.md): the official brief, deliverables and investor questions
 - [docs/plan.md](docs/plan.md): the five build stages
 - [docs/sponsors.md](docs/sponsors.md): every sponsor, what it is, and whether we use it
 - [docs/market.md](docs/market.md): market size, competitors, sources

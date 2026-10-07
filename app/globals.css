@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  --color-canvas: #f5f8fd;
+  --color-surface: #ffffff;
+  --color-ink: #0e1526;
+  --color-muted: #566072;
+  --color-faint: #8891a2;
+  --color-line: #e3e8f1;
+
+  --color-brand-50: #eff5ff;
+  --color-brand-100: #dce8fe;
+  --color-brand-200: #bdd4fd;
+  --color-brand-300: #8fb6fa;
+  --color-brand-400: #5e93f0;
+  --color-brand-500: #356ed8;
+  --color-brand-600: #2a5bc0;
+  --color-brand-700: #23499b;
+  --color-brand-800: #1e3c7c;
+  --color-brand-900: #182f5e;
+
+  --color-good: #1c7c54;
+  --color-good-soft: #e4f5ec;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fdf1da;
+  --color-bad: #b3261e;
+  --color-bad-soft: #fde9e7;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(53 110 216 / 0.12);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+}
+
+/* The brand blue is never a flat fill. Each surface that carries it gets a
+   lit top edge, a deeper base and a soft glow underneath. */
+
+.brand-fill {
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 50% -25%, rgb(255 255 255 / 0.4), transparent 60%),
+    linear-gradient(180deg, #5288ec 0%, #356ed8 55%, #2a5bc0 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.36),
+    inset 0 -1px 0 rgb(14 21 38 / 0.2),
+    0 1px 2px rgb(35 73 155 / 0.35),
+    0 8px 18px -8px rgb(53 110 216 / 0.6);
+}
+
+.brand-fill:hover {
+  background:
+    radial-gradient(120% 90% at 50% -25%, rgb(255 255 255 / 0.48), transparent 60%),
+    linear-gradient(180deg, #5c90f0 0%, #3b74dc 55%, #2d60c8 100%);
+}
+
+.brand-fill:active {
+  box-shadow:
+    inset 0 2px 4px rgb(14 21 38 / 0.28),
+    0 1px 2px rgb(35 73 155 / 0.3);
+}
+
+.brand-tint {
+  background: linear-gradient(180deg, #f1f6ff 0%, #e1ebfe 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(53 110 216 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  color: var(--color-brand-700);
+}
+
+/* Static stand-in for the shader, shown until the canvas paints and whenever
+   WebGL is not available. */
+.brand-field {
+  background:
+    radial-gradient(70% 90% at 85% 0%, #8fb6fa 0%, transparent 60%),
+    radial-gradient(60% 80% at 10% 100%, #1e3c7c 0%, transparent 65%),
+    linear-gradient(135deg, #2a5bc0 0%, #356ed8 50%, #5e93f0 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 24px 48px -28px rgb(53 110 216 / 0.7);
+}
+
+.page-glow {
+  background:
+    radial-gradient(55% 420px at 72% -80px, rgb(143 182 250 / 0.42), transparent 70%),
+    radial-gradient(40% 320px at 12% -40px, rgb(189 212 253 / 0.5), transparent 70%);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgb(14 21 38 / 0.06),
+    0 1px 2px rgb(14 21 38 / 0.04),
+    0 10px 24px -18px rgb(35 73 155 / 0.28);
+}

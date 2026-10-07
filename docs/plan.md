@@ -1,27 +1,45 @@
 # Plan
 
-Five stages, ordered by what depends on what. Each ends with something that
-can be demoed.
+Five build stages for the day-one MVP. Each ends with something that can be
+demoed.
 
-| Stage | Goal | What gets built | Sponsors | Done when |
-|---|---|---|---|---|
-| 1. Headquarters | The company exists and has a first client | Kylon workspace with a room for our own creator program, the five agents set up in AdaL, Paritok in front of every model call, the program's rules written into Prelint | Kylon, AdaL, Paritok, Prelint, Ask the W | The program's brief, budget and current creators are loaded, and each agent can read them |
-| 2. Brief and roster | Agents produce the two things a program starts with | Strategy writes a brief from what is working in the niche. Research returns a scored list of creators who fit it | Glasser, Querit, Apify | We would send that brief and contact those creators ourselves |
-| 3. Recruit and review | The loop closes on real posts | Sales contacts and onboards creators. The review pipeline scores each post against the brief, flags suspicious views and produces a payout report | AdaL, RocketRide, Tenki, BAND | One real video goes from posted to scored to a payout line, with no one touching it |
-| 4. Client product | A brand can see and trust the work | Product agent ships a dashboard: roster, posts, views, spend, payouts awaiting approval | InstaCloud, Prelint, Tenki | A brand can log in and approve a payout |
-| 5. Sells itself | The company finds its own customers | Research lists brands running creator programs, Sales pitches them, Marketing turns stage 3 results into a case study and landing page | Glasser, AdaL | A brand that is not us replies or signs up |
+| Stage | What gets built | Sponsors | Done when |
+|---|---|---|---|
+| 1. Build the app | The UI and database: a brand page, a brief, a creator roster, a posts list and a payouts table. Filled with our own creator program's data | InstaCloud | Every screen can be clicked through with real data in it |
+| 2. Strategy agent | Reads the brand page and what is working in the niche, then writes the brief | Glasser, Querit | Pressing a button fills the brief |
+| 3. Research agent | Reads the brief and fills the roster with scored creators | Glasser, Apify | The roster fills itself from the brief |
+| 4. Sales agent | Writes an outreach message for each creator on the roster and waits for approval | AdaL | Every creator has a draft message ready |
+| 5. Review agent | Takes a posted video, scores it against the brief, flags suspicious views and writes the payout line. Then all four agents get chained so each starts when the previous one finishes | RocketRide, Tenki, Kylon | One button runs brand to brief to roster to outreach, and a video link turns into a payout line |
 
-## Mapping to the hackathon
+## Also due for Phase 1
 
-- Phase 1: stages 1-3. Agents working through a real workflow, plus a simple MVP.
-- Phase 2: stages 4-5. Users, traction and the investor pitch.
+The brief asks for two things beyond the build. Both are short and come last.
 
-Final judging considers product, AI organization, execution, validation, GTM,
-traction and the final pitch.
+- A one-page business model and GTM: who pays, how much, how the first
+  customers are reached.
+- A short demo script and pitch.
 
-## Decisions to settle early
+Phase 1 has its own sponsor prizes, judged on build day. To be in the running
+for BAND and RocketRide then, stage 5 connects the agents through BAND and
+runs the review step on RocketRide.
 
-- Outreach approval. In stage 3, Sales drafts messages and waits for approval
-  before anything sends, until its tone is trusted. Switch to automatic later.
-- Fraud detection. The hardest part of stage 3 and the main differentiator. If
-  something has to be cut, cut dashboard polish in stage 4 before this.
+## Scope
+
+- Four agents: Strategy, Research, Sales and Review. Phase 1 asks for 3 to 5.
+- Outreach is drafted, not sent. A person approves each message.
+- Fraud detection is the hardest part of stage 5 and the main differentiator.
+  If something has to be cut, cut UI polish before this.
+
+## Phase 2
+
+See [hackathon-brief.md](hackathon-brief.md) for the full deliverable list.
+
+- Founding-team agents: Market Research, Finance, Fundraising and Content,
+  taking the team past the 5-agent minimum
+- An "Ask the team" screen where agents answer investor questions live
+- Landing page
+- Pitch deck and financial model
+- Marketing assets
+- Real users and traction, starting with our own creator program as the pilot
+- Prelint for product rules, Paritok for token cost
+- A client login so a brand can approve payouts itself

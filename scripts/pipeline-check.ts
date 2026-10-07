@@ -1,0 +1,31 @@
+// Runs the strategy pipeline once against the local engine with a short
+// question and prints what comes back. For debugging: bun run pipeline:check
+import path from "node:path";
+import { Question, RocketRideClient } from "rocketride";
+
+const client = new RocketRideClient({
+  uri: process.env.ROCKETRIDE_URI,
+  auth: process.env.ROCKETRIDE_AUTH ?? "local",
+  env: {
+    ROCKETRIDE_ANTHROPIC_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+    ROCKETRIDE_QUERIT_KEY: process.env.QUERIT_API_KEY ?? "",
+  },
+  onEvent: async (event) => {
+    console.log("event", JSON.stringify(event).slice(0, 220));
+  },
+});
+
+await client.connect();
+const { token } = await client.use({ filepath: path.join(process.cwd(), "pipelines", "strategy.pipe") });
+console.log("started", token.slice(0, 10));
+try {
+  const question = new Question({ expectJson: true });
+  question.addQuestion(process.argv[2] ?? "Brand: Lumen, a study timer app that locks your phone. Write the creator brief.");
+  const started = Date.now();
+  const response = await client.chat({ token, question });
+  console.log(`answered in ${Math.round((Date.now() - started) / 1000)}s`);
+  console.log(JSON.stringify(response).slice(0, 1500));
+} finally {
+  await client.terminate(token).catch(() => undefined);
+  await client.disconnect().catch(() => undefined);
+}
