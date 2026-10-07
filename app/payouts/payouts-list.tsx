@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { BlueField } from "@/components/blue-field";
+import { backdropClass, popupMotionClass } from "@/components/detail-dialog";
 import { Badge, Button, Handle, SectionLabel, buttonClass } from "@/components/ui";
 import type { Payout, PayoutStatus } from "@/lib/data";
-import { formatMoney, formatNumber } from "@/lib/format";
+import { cx, formatMoney, formatNumber } from "@/lib/format";
 
 const statusTone = {
   "Awaiting approval": "warn",
@@ -125,8 +126,13 @@ export function PayoutsList({
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
-          <Dialog.Popup className="fixed rounded-[24px] bg-surface shadow-[0_0_0_1px_var(--color-line),0_24px_60px_-20px_rgb(16_17_20/0.3)] top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overscroll-contain p-6 transition-[opacity,scale] duration-150 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
+          <Dialog.Backdrop className={backdropClass} />
+          <Dialog.Popup
+            className={cx(
+              "fixed rounded-[24px] bg-surface shadow-[0_0_0_1px_var(--color-line),0_24px_60px_-20px_rgb(16_17_20/0.3)] top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overscroll-contain p-6",
+              popupMotionClass,
+            )}
+          >
             <Dialog.Title className="text-xl font-medium tracking-[-0.02em]">
               Approve {pending ? formatMoney(pending.amount) : ""}?
             </Dialog.Title>

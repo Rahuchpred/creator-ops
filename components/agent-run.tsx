@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, LoaderCircle } from "lucide-react";
 import { AgentTile } from "@/components/ui";
 import type { AgentEvent } from "@/lib/agents/stream";
+import { cx } from "@/lib/format";
 
 export type Run =
   | { state: "idle" }
@@ -66,10 +67,17 @@ export function useAgentRun(endpoint: string) {
   return { run, start, running: run.state === "running" };
 }
 
+// With reduced motion the spinner stops turning and breathes instead, so a
+// wait never looks frozen.
+const spin = "animate-spin motion-reduce:animate-pulse";
+
+// The run panel and each new step ease in as they arrive, so the page does
+// not jump. With reduced motion they fade without moving.
+const arrive =
+  "transition-[opacity,translate] duration-200 ease-out starting:translate-y-1.5 starting:opacity-0 motion-reduce:starting:translate-y-0";
+
 export function Spinner() {
-  return (
-    <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
-  );
+  return <LoaderCircle aria-hidden="true" className={cx("size-4", spin)} />;
 }
 
 export function MissingKeys({ agent, keys }: { agent: string; keys: string[] }) {
@@ -103,7 +111,7 @@ export function AgentRunPanel({
   const running = run.state === "running";
 
   return (
-    <section className="card p-6" aria-label={`${agent} agent run`}>
+    <section className={cx("card p-6", arrive)} aria-label={`${agent} agent run`}>
       <div className="flex items-center gap-3">
         <AgentTile agent={agent} />
         <h2 className="text-base font-semibold tracking-tight">
@@ -118,11 +126,14 @@ export function AgentRunPanel({
         {run.steps.map((step, index) => {
           const current = running && index === run.steps.length - 1;
           return (
-            <li key={`${index}-${step}`} className="flex gap-3 border-t border-line py-2.5">
+            <li
+              key={`${index}-${step}`}
+              className={cx("flex gap-3 border-t border-line py-2.5", arrive)}
+            >
               {current ? (
                 <LoaderCircle
                   aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0 animate-spin text-muted motion-reduce:animate-none"
+                  className={cx("mt-0.5 size-4 shrink-0 text-muted", spin)}
                 />
               ) : (
                 <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-good" />

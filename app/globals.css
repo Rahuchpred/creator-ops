@@ -33,6 +33,11 @@
   --color-warn-soft: #fdf1da;
   --color-bad: #b3261e;
   --color-bad-soft: #fde9e7;
+
+  /* A stronger ease-out than the built-in one: quick off the mark, soft
+     landing. A spinner that turns faster makes a wait feel shorter. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-spin: spin 0.7s linear infinite;
 }
 
 :root {
@@ -67,10 +72,13 @@ body {
     0 8px 18px -8px rgb(53 110 216 / 0.6);
 }
 
-.brand-fill:hover {
-  background:
-    radial-gradient(120% 90% at 50% -25%, rgb(255 255 255 / 0.48), transparent 60%),
-    linear-gradient(180deg, #5c90f0 0%, #3b74dc 55%, #2d60c8 100%);
+/* Only where there is a real pointer, so a tap does not leave it stuck. */
+@media (hover: hover) and (pointer: fine) {
+  .brand-fill:hover {
+    background:
+      radial-gradient(120% 90% at 50% -25%, rgb(255 255 255 / 0.48), transparent 60%),
+      linear-gradient(180deg, #5c90f0 0%, #3b74dc 55%, #2d60c8 100%);
+  }
 }
 
 .brand-fill:active {
@@ -129,7 +137,7 @@ body {
 
 /* Buttons give a little under the finger. Transform only, nothing reflows. */
 .press {
-  transition: transform 120ms ease-out;
+  transition: transform 120ms var(--ease-out);
 }
 
 .press:active {

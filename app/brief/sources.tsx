@@ -30,10 +30,10 @@ export function Sources({ sources }: { sources: Brief["sources"] }) {
         </span>
         <ChevronDown
           aria-hidden="true"
-          className="size-4 text-faint transition-transform duration-150 group-data-[panel-open]:rotate-180 motion-reduce:transition-none"
+          className="size-4 text-faint transition-[rotate] duration-150 ease-out group-data-[panel-open]:rotate-180 motion-reduce:transition-none"
         />
       </Collapsible.Trigger>
-      <Collapsible.Panel className="h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 motion-reduce:transition-none">
+      <Collapsible.Panel className="h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[ending-style]:duration-150 data-[starting-style]:h-0 motion-reduce:transition-none">
         <ul className="grid gap-x-8 px-5 pb-3 text-sm md:grid-cols-2 md:px-6">
           {sources.map((source) => (
             <li key={source.url} className="flex min-w-0 gap-3 border-t border-line py-2.5">

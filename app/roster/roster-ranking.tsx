@@ -133,12 +133,17 @@ export function RosterRanking({ creators }: { creators: Creator[] }) {
       className="flex flex-col gap-6"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs.List className="flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-fill p-1 [scrollbar-width:none]">
+        <Tabs.List className="relative flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-fill p-1 [scrollbar-width:none]">
+          {/* The white pill slides to the chosen tab. Only this one span moves. */}
+          <Tabs.Indicator
+            renderBeforeHydration
+            className="absolute top-1 left-0 h-8 w-[var(--active-tab-width)] translate-x-[var(--active-tab-left)] rounded-full bg-surface shadow-[0_1px_2px_rgb(16_17_20/0.12),0_0_0_1px_rgb(16_17_20/0.04)] transition-[translate,width] duration-200 ease-out motion-reduce:transition-none"
+          />
           {filters.map((status) => (
             <Tabs.Tab
               key={status}
               value={status}
-              className="group flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted select-none hover:text-ink focus-visible:outline-offset-0 data-[active]:bg-surface data-[active]:text-ink data-[active]:shadow-[0_1px_2px_rgb(16_17_20/0.12),0_0_0_1px_rgb(16_17_20/0.04)]"
+              className="group relative flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted select-none hover:text-ink focus-visible:outline-offset-0 data-[active]:text-ink"
             >
               {status}
               <span className="tabular-nums text-faint">

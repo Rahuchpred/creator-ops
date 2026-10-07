@@ -111,7 +111,7 @@ export function OutreachGrid({
               </span>
               <span className="mt-auto flex items-center justify-between gap-2 pt-5">
                 <Badge tone={statusTone[item.status]}>{item.status}</Badge>
-                <span className="flex items-center gap-1 text-xs font-medium text-faint group-hover:text-ink group-focus-visible:text-ink">
+                <span className="flex items-center gap-1 text-xs font-medium text-faint transition-[color] duration-150 ease-out group-hover:text-ink group-focus-visible:text-ink">
                   Read
                   <ArrowUpRight aria-hidden="true" className="size-3.5" />
                 </span>

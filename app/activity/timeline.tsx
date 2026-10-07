@@ -44,11 +44,11 @@ export function Timeline({ days }: { days: Day[] }) {
                       <time dateTime={handoff.at}>{handoff.time}</time>
                       <ChevronDown
                         aria-hidden="true"
-                        className="size-4 transition-transform duration-150 group-data-[panel-open]:rotate-180 motion-reduce:transition-none"
+                        className="size-4 transition-[rotate] duration-150 ease-out group-data-[panel-open]:rotate-180 motion-reduce:transition-none"
                       />
                     </span>
                   </Collapsible.Trigger>
-                  <Collapsible.Panel className="h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 motion-reduce:transition-none">
+                  <Collapsible.Panel className="h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[ending-style]:duration-150 data-[starting-style]:h-0 motion-reduce:transition-none">
                     <div className="border-t border-line bg-surface px-4 py-4 md:px-5 md:pl-[15.75rem]">
                       <div className="text-xs font-medium text-faint">
                         {handoff.from} to {handoff.to}

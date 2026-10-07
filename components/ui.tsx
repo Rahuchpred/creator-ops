@@ -182,13 +182,14 @@ export function Chip({
   );
 }
 
-// A card that opens something. Hover and keyboard focus look the same: the
-// card turns white, lifts a little and its edge darkens. Written out in
-// utilities, since the plain .card rule would outrank the hover state.
+// A card that opens something. On hover the card turns white, lifts a little
+// and its edge darkens. Keyboard focus gets the same look without the lift,
+// so tabbing through a grid moves nothing. Written out in utilities, since
+// the plain .card rule would outrank the hover state.
 export const cardButtonClass = cx(
   "w-full cursor-pointer rounded-[20px] bg-soft text-left shadow-[0_0_0_1px_var(--color-line)]",
-  "transition-[translate,box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none",
+  "transition-[translate,box-shadow,background-color] duration-150 ease-out motion-reduce:transition-[box-shadow,background-color]",
   "hover:-translate-y-0.5 hover:bg-surface hover:shadow-[0_0_0_1px_var(--color-fill-strong),0_14px_28px_-18px_rgb(16_17_20/0.28)]",
-  "focus-visible:-translate-y-0.5 focus-visible:bg-surface focus-visible:shadow-[0_0_0_1px_var(--color-fill-strong),0_14px_28px_-18px_rgb(16_17_20/0.28)]",
-  "active:translate-y-0 motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0",
+  "focus-visible:bg-surface focus-visible:shadow-[0_0_0_1px_var(--color-fill-strong),0_14px_28px_-18px_rgb(16_17_20/0.28)]",
+  "active:translate-y-0 motion-reduce:hover:translate-y-0",
 );

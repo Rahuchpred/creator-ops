@@ -96,13 +96,27 @@ export function BlueField({ className }: { className?: string }) {
     const time = gl.getUniformLocation(program, "u_time");
     const still = window.matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
+    let last = 0;
+    let onScreen = true;
 
+    // The drift is slow, so every other frame is skipped: 30 a second looks
+    // the same as 60 at half the cost. Nothing is drawn while the hero is
+    // scrolled out of view.
     const draw = (now: number) => {
+      if (!still.matches && onScreen) frame = requestAnimationFrame(draw);
+      if (now - last < 30) return;
+      last = now;
       gl.uniform2f(size, canvas.width, canvas.height);
       gl.uniform1f(time, now / 1000);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       canvas.style.opacity = "1";
-      if (!still.matches) frame = requestAnimationFrame(draw);
+    };
+
+    // Draws the next frame for certain, then carries on if it should.
+    const restart = () => {
+      cancelAnimationFrame(frame);
+      last = 0;
+      frame = requestAnimationFrame(draw);
     };
 
     const resize = () => {
@@ -110,18 +124,23 @@ export function BlueField({ className }: { className?: string }) {
       canvas.width = Math.max(1, Math.round(canvas.clientWidth * ratio));
       canvas.height = Math.max(1, Math.round(canvas.clientHeight * ratio));
       gl.viewport(0, 0, canvas.width, canvas.height);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(draw);
+      restart();
     };
 
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
-    still.addEventListener("change", resize);
+    const watcher = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (onScreen) restart();
+    });
+    watcher.observe(canvas);
+    still.addEventListener("change", restart);
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
-      still.removeEventListener("change", resize);
+      watcher.disconnect();
+      still.removeEventListener("change", restart);
     };
   }, []);
 
@@ -130,7 +149,7 @@ export function BlueField({ className }: { className?: string }) {
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className={`opacity-0 transition-opacity duration-500 motion-reduce:transition-none ${className ?? ""}`}
+        className={`opacity-0 transition-opacity duration-500 ease-out ${className ?? ""}`}
       />
       <div aria-hidden="true" className="dot-grid pointer-events-none absolute inset-0" />
     </>
