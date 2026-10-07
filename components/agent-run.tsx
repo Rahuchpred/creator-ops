@@ -16,7 +16,8 @@ export type Run =
 // Starts an agent, follows its steps as they stream in, and refreshes the
 // page when it finishes so the new data shows. `startWith` sends the agent
 // something to work on, such as a pasted link.
-export function useAgentRun(endpoint: string) {
+// `refreshOn` also refreshes the page mid-run, whenever a step matches it.
+export function useAgentRun(endpoint: string, refreshOn?: RegExp) {
   const router = useRouter();
   const [run, setRun] = useState<Run>({ state: "idle" });
   const steps = useRef<string[]>([]);
@@ -56,6 +57,7 @@ export function useAgentRun(endpoint: string) {
           if (event.type === "step") {
             steps.current = [...steps.current, event.label];
             setRun({ state: "running", steps: steps.current });
+            if (refreshOn?.test(event.label)) router.refresh();
           } else if (event.type === "error") {
             return fail(event.message);
           } else {

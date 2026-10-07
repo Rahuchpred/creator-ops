@@ -4,6 +4,8 @@ import { connection } from "next/server";
 import { Check, Eye, Send, Wallet, type LucideIcon } from "lucide-react";
 import { BlueField } from "@/components/blue-field";
 import { BudgetTracker } from "@/components/budget-tracker";
+import { ProgramRun } from "@/components/program-run";
+import { recordingForCurrentProgram } from "@/lib/program-run";
 import { AgentTile, Badge, PageHeader, Tile, buttonClass, type TileColor } from "@/components/ui";
 import { totals } from "@/lib/data";
 import { formatCompact, formatDollars, formatMoney } from "@/lib/format";
@@ -72,6 +74,7 @@ async function Overview() {
     getPosts(),
     getPayoutApprovals(),
   ]);
+  const recording = await recordingForCurrentProgram();
 
   // Sample rows stand in for a roster or posts that were never saved.
   const creators = roster.sample ? [] : roster.creators;
@@ -163,6 +166,11 @@ async function Overview() {
           {sample ? "Set Up Your Program" : "Edit Program"}
         </Link>
       </PageHeader>
+
+      <ProgramRun
+        missingKeys={[...new Set([...missingStrategyKeys(), ...missingResearchKeys()])]}
+        recorded={recording?.seconds}
+      />
 
       <section
         aria-label="This month"
