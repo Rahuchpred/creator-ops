@@ -30,6 +30,7 @@ async function ProgramView() {
           minimumViews: String(brand.minimumViews),
           followersMin: String(brand.creatorFollowers.min),
           followersMax: String(brand.creatorFollowers.max),
+          hashtag: brand.hashtag ?? "",
           rules: brand.rules.join("\n"),
         }}
       />

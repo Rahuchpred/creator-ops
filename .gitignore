@@ -45,3 +45,6 @@ next-env.d.ts
 
 # local stand-in for the database
 /.data
+
+# other sessions' checkouts
+.claude/worktrees/

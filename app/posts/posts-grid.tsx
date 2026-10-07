@@ -190,6 +190,14 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
                   {chosen.caption || "No caption"}
                 </p>
               </div>
+              {chosen.transcript ? (
+                <div>
+                  <h3 className="text-xs font-medium text-faint">What is said in the video</h3>
+                  <p className="mt-1 max-h-40 overflow-y-auto rounded-[14px] bg-fill px-3.5 py-3 text-[13px] leading-relaxed whitespace-pre-line break-words tabular-nums">
+                    {chosen.transcript}
+                  </p>
+                </div>
+              ) : null}
               {chosen.feedback ? (
                 <div>
                   <h3 className="text-xs font-medium text-faint">What the reviewer said</h3>

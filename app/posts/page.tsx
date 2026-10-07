@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getPosts, missingReviewKeys } from "@/lib/store";
+import { getPosts, getProgram, missingReviewKeys } from "@/lib/store";
 import { PostsGrid } from "./posts-grid";
 import { PostsHeader } from "./posts-header";
 
@@ -8,11 +8,15 @@ export const metadata: Metadata = { title: "Posts" };
 
 // Read per request, so posts the Marketing agent just reviewed show on refresh.
 async function PostsView() {
-  const { posts, sample } = await getPosts();
+  const [{ posts, sample }, { brand }] = await Promise.all([getPosts(), getProgram()]);
   const submitted = posts.filter((post) => post.submitted).length;
   return (
     <>
-      <PostsHeader sample={sample} submitted={submitted} missingKeys={missingReviewKeys()} />
+      <PostsHeader
+        sample={sample}
+        submitted={submitted}
+        hashtag={brand.hashtag}
+        missingKeys={missingReviewKeys()} />
       {sample || submitted > 0 || posts.length === 0 ? null : (
         <p className="max-w-[70ch] text-sm text-pretty text-muted">
           These are test rows, not posts made for the program. Until a real post is added

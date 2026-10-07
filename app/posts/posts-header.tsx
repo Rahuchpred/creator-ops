@@ -8,17 +8,21 @@ import { Badge, Button, PageHeader, Tile } from "@/components/ui";
 export function PostsHeader({
   sample,
   submitted,
+  hashtag,
   missingKeys,
 }: {
   sample: boolean;
   // How many posts have been handed in by link.
   submitted: number;
+  // The program hashtag, when one is set.
+  hashtag?: string;
   missingKeys: string[];
 }) {
   const all = useAgentRun("/api/agents/review");
   const one = useAgentRun("/api/posts/submit");
+  const tagged = useAgentRun("/api/posts/track");
   const [link, setLink] = useState("");
-  const busy = all.running || one.running;
+  const busy = all.running || one.running || tagged.running;
   const blocked = busy || missingKeys.length > 0;
 
   return (
@@ -28,7 +32,13 @@ export function PostsHeader({
         description="Videos creators posted for the program, scored against the brief. Held posts wait for your call."
       >
         {sample ? <Badge>Sample data</Badge> : null}
-        <Button variant={submitted > 0 ? "primary" : "secondary"} onClick={all.start} disabled={blocked}>
+        {hashtag ? (
+          <Button variant="primary" onClick={tagged.start} disabled={blocked}>
+            {tagged.running ? <Spinner /> : null}
+            {tagged.running ? "Checking…" : `Check #${hashtag}`}
+          </Button>
+        ) : null}
+        <Button onClick={all.start} disabled={blocked}>
           {all.running ? <Spinner /> : null}
           {all.running ? "Reviewing…" : submitted > 0 ? "Refresh Reviews" : "Run a Test Review"}
         </Button>
@@ -72,6 +82,7 @@ export function PostsHeader({
         </p>
       </form>
 
+      <AgentRunPanel run={tagged.run} agent="Marketing" doneTitle="Hashtag checked" />
       <AgentRunPanel run={one.run} agent="Marketing" doneTitle="Post reviewed" />
       <AgentRunPanel run={all.run} agent="Marketing" doneTitle="Posts reviewed" />
     </>

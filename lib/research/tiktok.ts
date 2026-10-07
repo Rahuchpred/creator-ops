@@ -154,3 +154,62 @@ export async function fetchCreator(handle: string, budget: Budget): Promise<Fetc
     posts: (videos.aweme_list ?? []).map(toPost),
   };
 }
+
+// Turns TikTok's timed caption file into short lines like "0:03 text".
+function readableTranscript(vtt: string): string {
+  const lines: string[] = [];
+  let at = "";
+  for (const raw of vtt.split("\n")) {
+    const line = raw.trim();
+    const time = /^(\d+):(\d+):(\d+)\.\d+ -->/.exec(line);
+    if (time) {
+      const seconds = Number(time[1]) * 3600 + Number(time[2]) * 60 + Number(time[3]);
+      at = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    } else if (line && line !== "WEBVTT" && at) {
+      lines.push(`${at} ${line}`);
+      at = "";
+    }
+  }
+  return lines.join("\n");
+}
+
+// What is said in one video: one paid call. Comes back empty when the
+// video has no speech or the transcript cannot be read, which never fails
+// a review.
+export async function fetchTranscript(url: string, budget: Budget): Promise<string> {
+  try {
+    const output = await glasser<{ transcript?: string }>(
+      "/v1/tiktok/video/transcript",
+      { url },
+      budget,
+    );
+    return readableTranscript(output.transcript ?? "").slice(0, 4000);
+  } catch {
+    return "";
+  }
+}
+
+// The videos posted under a hashtag, with their numbers: one paid call.
+export async function fetchHashtagPosts(
+  hashtag: string,
+  budget: Budget,
+): Promise<{ handle: string; name: string; videoId: string; post: FetchedPost }[]> {
+  const output = await glasser<{ aweme_list?: Video[]; search_item_list?: Video[] }>(
+    "/v1/tiktok/search/hashtag",
+    { hashtag: hashtag.replace(/^#/, ""), trim: true },
+    budget,
+  );
+  return (output.aweme_list ?? output.search_item_list ?? []).flatMap((video) => {
+    const handle = video.author?.unique_id?.toLowerCase();
+    return handle && video.aweme_id
+      ? [
+          {
+            handle,
+            name: video.author?.nickname ?? handle,
+            videoId: video.aweme_id,
+            post: toPost(video),
+          },
+        ]
+      : [];
+  });
+}

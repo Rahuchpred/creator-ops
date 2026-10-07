@@ -16,7 +16,8 @@ const SPIKE_ENGAGEMENT_DROP = 0.4; // ...with under 40% of their usual engagemen
 const LOW_ENGAGEMENT = 0.01; // under 1% engagement on a post with real reach
 const LOW_ENGAGEMENT_MIN_VIEWS = 10_000;
 const SHADOW_BAN_VIEWS = 1_000; // the playbook's line for a shadow ban or weak content
-const MIN_BRIEF_SCORE = 50; // below this the post does not follow the brief
+const MIN_BRIEF_SCORE = 50; // below this the post does not clearly follow the brief
+const CLEAR_MISS = 35; // below this it plainly does not, and nobody needs to look
 
 // The brand's hard rule: every post is marked as a paid partnership. The
 // platform's own label arrives as `isAd`, so only the caption tags are
@@ -73,11 +74,13 @@ export function flagsFor(post: FetchedPost, others: FetchedPost[]): ReviewFlag[]
 //
 // 1. No disclosure: Rejected. It is the brand's hard rule and a plain fact
 //    about the post, so there is nothing for a person to weigh.
-// 2. Brief score under 50: Rejected. A post that does not follow the brief
-//    is not paid however real its views are, so the fraud question is moot.
-// 3. View spike or Low engagement: In review. The post follows the brief
+// 2. Brief score under 35: Rejected. A post that plainly does not follow
+//    the brief is not paid however real its views are.
+// 3. Brief score from 35 to 49: In review. It follows part of the brief,
+//    and a person who can watch the video makes the call.
+// 4. View spike or Low engagement: In review. The post follows the brief
 //    but its views may not be real, and a person decides before money moves.
-// 4. Otherwise: Approved.
+// 5. Otherwise: Approved.
 //
 // So any of the three blocking flags keeps a post from "Approved" whatever
 // its score, and the model cannot talk a post past them. "Under 1,000 views"
@@ -85,7 +88,8 @@ export function flagsFor(post: FetchedPost, others: FetchedPost[]): ReviewFlag[]
 // below the brand's minimum views and earns nothing either way.
 export function verdictFor(briefScore: number, flags: ReviewFlag[]): PostStatus {
   if (flags.includes("No disclosure")) return "Rejected";
-  if (briefScore < MIN_BRIEF_SCORE) return "Rejected";
+  if (briefScore < CLEAR_MISS) return "Rejected";
+  if (briefScore < MIN_BRIEF_SCORE) return "In review";
   if (flags.includes("View spike") || flags.includes("Low engagement")) return "In review";
   return "Approved";
 }

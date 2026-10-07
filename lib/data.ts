@@ -14,6 +14,9 @@ export type Brand = {
   ratePerThousandViews: number;
   payoutCapPerPost: number;
   minimumViews: number;
+  // Optional. The tag creators put on program posts, without the #. When
+  // set, posts carrying it can be pulled in without pasting links.
+  hashtag?: string;
   // The follower range the program recruits from.
   creatorFollowers: { min: number; max: number };
   rules: string[];
@@ -88,6 +91,9 @@ export type Post = {
   durationSeconds?: number;
   likes?: number;
   comments?: number;
+  // What is said in the video, one timed line per row, when it could be
+  // fetched. Empty for silent videos.
+  transcript?: string;
   // True for a video a person handed in for the program by pasting its
   // link. Other rows are the reviewer's test run on creators' own videos.
   submitted?: boolean;

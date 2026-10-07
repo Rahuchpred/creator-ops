@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { Check } from "lucide-react";
+import { useActionState, useRef, useState, useTransition } from "react";
+import { Check, Sparkles } from "lucide-react";
 import { Spinner } from "@/components/agent-run";
-import { Button, buttonClass } from "@/components/ui";
+import { Button, Tile, buttonClass } from "@/components/ui";
 import { cx } from "@/lib/format";
-import { saveProgramAction, type Field, type ProgramState } from "./actions";
+import {
+  fillProgramAction,
+  saveProgramAction,
+  type Field,
+  type ProgramState,
+} from "./actions";
 
 const inputClass =
   "w-full rounded-[14px] bg-surface px-3.5 py-2.5 text-sm text-ink shadow-[0_0_0_1px_var(--color-fill-strong)] placeholder:text-faint hover:shadow-[0_0_0_1px_#d6d6db]";
@@ -16,6 +21,41 @@ export function ProgramForm({ start }: { start: Record<Field, string> }) {
     values: start,
     errors: {},
   });
+
+  // Fields drafted from pasted notes. They only apply to the form state
+  // they were drafted on top of, so a later save always wins.
+  const formRef = useRef<HTMLFormElement>(null);
+  const [notes, setNotes] = useState("");
+  const [filled, setFilled] = useState<{
+    on: ProgramState;
+    values: Record<Field, string>;
+    count: number;
+  } | null>(null);
+  const [fillMessage, setFillMessage] = useState("");
+  const [filling, startFilling] = useTransition();
+  const values = filled?.on === state ? filled.values : state.values;
+
+  const fill = () =>
+    startFilling(async () => {
+      setFillMessage("");
+      const result = await fillProgramAction(notes);
+      if (!result.values) {
+        setFillMessage(result.message ?? "The notes could not be read. Try again.");
+        return;
+      }
+      // Start from what is typed in the form now, so nothing typed is lost.
+      const typed = Object.fromEntries(
+        Object.keys(state.values).map((name) => [
+          name,
+          String(new FormData(formRef.current!).get(name) ?? ""),
+        ]),
+      ) as Record<Field, string>;
+      setFilled({
+        on: state,
+        values: { ...typed, ...result.values },
+        count: Object.keys(result.values).length,
+      });
+    });
 
   // One labelled control. The error sits right under the field it is about.
   const field = (
@@ -34,7 +74,7 @@ export function ProgramForm({ start }: { start: Record<Field, string> }) {
     const shared = {
       id: name,
       name,
-      defaultValue: state.values[name],
+      defaultValue: values[name],
       placeholder: options.placeholder,
       autoComplete: "off",
       "aria-invalid": error ? true : undefined,
@@ -74,7 +114,50 @@ export function ProgramForm({ start }: { start: Record<Field, string> }) {
   return (
     // The key remounts the fields with what was typed, so a failed save
     // never clears the form.
-    <form action={action} key={JSON.stringify(state.values)} className="flex flex-col gap-6">
+    <form
+      ref={formRef}
+      action={action}
+      key={JSON.stringify(values)}
+      className="flex flex-col gap-6"
+    >
+      <section className="card flex flex-col gap-3 p-6" aria-labelledby="paste">
+        <h2 id="paste" className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+          <Tile color="violet" size="sm">
+            <Sparkles aria-hidden="true" />
+          </Tile>
+          Paste What You Have
+        </h2>
+        <label htmlFor="notes" className="text-sm text-pretty text-muted">
+          A message, a pitch, a page from your site, rough bullet points. The fields below are
+          filled from it for you to check. Nothing is saved until you press Save Program.
+        </label>
+        <textarea
+          id="notes"
+          rows={4}
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          autoComplete="off"
+          placeholder="We are Lumen, a study timer app for students. Paying $1.20 per 1k views, max $400 a post…"
+          className={inputClass}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={fill} disabled={filling || notes.trim().length < 10}>
+            {filling ? <Spinner /> : null}
+            {filling ? "Reading…" : "Fill the Form"}
+          </Button>
+          <p aria-live="polite" className="min-w-0 text-sm text-pretty">
+            {fillMessage ? (
+              <span className="text-bad">{fillMessage}</span>
+            ) : filled?.on === state && !filling ? (
+              <span className="text-good">
+                Filled {filled.count} {filled.count === 1 ? "field" : "fields"}. Check them, then
+                save. Fields the notes did not cover were left as they were.
+              </span>
+            ) : null}
+          </p>
+        </div>
+      </section>
+
       <section className="card p-6" aria-labelledby="about">
         <h2 id="about" className="text-base font-semibold tracking-tight">
           The brand
@@ -124,6 +207,11 @@ export function ProgramForm({ start }: { start: Record<Field, string> }) {
         <div className="mt-4 grid gap-x-6 gap-y-5 md:grid-cols-2">
           {field("followersMin", "Smallest following to recruit", { number: true, placeholder: "3000…" })}
           {field("followersMax", "Largest following to recruit", { number: true, placeholder: "150000…" })}
+          {field("hashtag", "Program hashtag", {
+            wide: true,
+            placeholder: "lumenpartner…",
+            hint: "Optional. The tag creators put on program posts. With it set, the Posts screen can pull in tagged videos without pasting links.",
+          })}
           {field("rules", "Rules every post follows", {
             wide: true,
             rows: 5,

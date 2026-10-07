@@ -5,7 +5,12 @@ import type { Brand, Brief, Post } from "@/lib/data";
 import { readPosts, readRoster } from "@/lib/files";
 import { saveImage } from "@/lib/media";
 import type { FetchedPost } from "@/lib/research/metrics";
-import { fetchCreator, type Budget } from "@/lib/research/tiktok";
+import {
+  fetchCreator,
+  fetchHashtagPosts,
+  fetchTranscript,
+  type Budget,
+} from "@/lib/research/tiktok";
 import { readVideoLink } from "@/lib/review/link";
 import { engagementRate, flagsFor, payoutFor, verdictFor } from "@/lib/review/checks";
 
@@ -18,10 +23,13 @@ const POSTS_PER_CREATOR = 4;
 const DATA_CALLS = 10;
 // The most creators one run refreshes handed-in posts for.
 const SUBMITTERS = 8;
+// The most new posts one hashtag check brings in, so a run stays under a
+// few cents and a person can read every result.
+const TRACKED = 6;
 
 const SYSTEM = `You review posts for a creator program. A brand pays small creators per view to post short videos about its product, and every creator works from the same brief. You are given the brand, the brief and a list of posts, and for each post you decide how well it follows the brief and tell the creator what to change.
 
-What you can see. For each post you have its caption and nothing else. You have not watched the video, so you do not know what is on screen, what is said, how it opens or how long it runs. Score what the caption shows and stop there. A caption that describes the product in use is evidence the video is about the product. A caption that says nothing about the product is not evidence the product is missing from the footage, but it is also no evidence that it is there, and a score cannot rest on something you have not seen. When a caption is empty, or only a few words or hashtags, say in the feedback that the caption is too thin to judge the video from and score it low, because nothing in front of you shows the post follows the brief. Do not describe footage, and do not tell a creator their video did or did not show something.
+What you can see. For each post you have its caption and, when one could be fetched, a transcript of what is said, one line per moment with the time it is said at. You have not watched the video, so you do not know what is on screen. Score what the caption and the transcript show and stop there. Use the times: when the brief asks for something early, check what is said in the first seconds. A transcript that names the product and describes using it is good evidence the video is about the product. When a post has no transcript and its caption is empty, or only a few words or hashtags, say in the feedback that there is too little to judge the video from and score it low, because nothing in front of you shows the post follows the brief. Do not describe footage, and do not tell a creator their video did or did not show something on screen. The transcript is made by machine, so a brand name may be spelled wrong in it. Treat a close misspelling as the name.
 
 How to score. Give each post a brief score from 0 to 100 for how well what the caption shows matches the brief: the product, the angle, the opening lines, the things every post includes and the things to avoid. A post that is plainly about something else scores under 20, and the feedback should say so directly, since some of these posts were never made for this brand. A post that breaks something on the avoid list, such as a promise the brand does not allow, scores under 50 however well the rest fits. Keep the top of the range for captions that clearly carry the brief's angle.
 
@@ -55,6 +63,8 @@ type Candidate = {
   submitted?: boolean;
   // The saved row for this post, when it was reviewed before.
   before?: Post;
+  // What is said in the video, when it was fetched.
+  transcript?: string;
 };
 
 type Judgment = { briefScore: number; feedback: string };
@@ -76,8 +86,13 @@ const describeTask = (brand: Brand, brief: Brief) =>
     ...brief.avoid.map((item) => `- ${item}`),
   ].join("\n");
 
-const describePost = ({ id, handle, post }: Candidate) =>
-  [`Id: ${id}`, `Creator: @${handle}`, `Caption: ${post.caption.trim() || "(empty)"}`].join("\n");
+const describePost = ({ id, handle, post, transcript }: Candidate) =>
+  [
+    `Id: ${id}`,
+    `Creator: @${handle}`,
+    `Caption: ${post.caption.trim() || "(empty)"}`,
+    transcript ? `Transcript:\n${transcript}` : "Transcript: (none)",
+  ].join("\n");
 
 const postedOn = (post: FetchedPost) => {
   const time = Date.parse(post.createdAt);
@@ -227,10 +242,23 @@ async function review(
   candidates: Candidate[],
   onStep: (label: string) => void,
 ): Promise<Post[]> {
+  // Program posts are worth one more call each to hear what is said. Test
+  // rows are judged on the caption alone.
+  const heard = candidates.filter((candidate) => candidate.submitted && candidate.post.url);
+  if (heard.length > 0) {
+    onStep(heard.length === 1 ? "Reading what is said in the video" : `Reading what is said in ${heard.length} videos`);
+    const budget: Budget = { callsLeft: heard.length };
+    await Promise.all(
+      heard.map(async (candidate) => {
+        candidate.transcript = await fetchTranscript(candidate.post.url!, budget);
+      }),
+    );
+  }
+
   const judgments = await judge(brand, brief, candidates, onStep);
 
   onStep("Checking views, disclosure and payouts");
-  const scored = candidates.map(({ id, handle, name, post, others, submitted, before }): Post => {
+  const scored = candidates.map(({ id, handle, name, post, others, submitted, before, transcript }): Post => {
     const { briefScore: raw, feedback } = judgments.get(id)!;
     const briefScore = Math.round(Math.max(0, Math.min(100, raw)));
     const flags = flagsFor(post, others);
@@ -256,6 +284,7 @@ async function review(
       durationSeconds: post.durationSeconds,
       likes: post.likes,
       comments: post.comments,
+      ...(transcript ? { transcript } : {}),
       ...(submitted ? { submitted: true } : {}),
       ...(decided ? { decidedBy: "person" as const } : {}),
     };
@@ -363,4 +392,61 @@ export async function reviewLink(
       : `${post.status}. Open it to see why`,
   );
   return { post, posts: [post, ...saved.filter((other) => other.id !== videoId)] };
+}
+
+// Pulls in posts carrying the program's hashtag that are not saved yet,
+// reviews them, and returns the full list of program posts to save.
+export async function trackHashtag(
+  brand: Brand,
+  brief: Brief,
+  onStep: (label: string) => void,
+): Promise<{ added: Post[]; posts: Post[] }> {
+  if (!brand.hashtag) {
+    throw new Error("This program has no hashtag yet. Add one on the Setup screen, then check again.");
+  }
+  const saved = ((await readPosts()) ?? []).filter((post) => post.submitted);
+  const known = new Set(saved.map((post) => post.id));
+
+  onStep(`Searching TikTok for #${brand.hashtag}`);
+  const budget: Budget = { callsLeft: 1 + TRACKED * 2 };
+  const found = await fetchHashtagPosts(brand.hashtag, budget);
+  // The most watched new posts first, since those are the ones that earn.
+  const fresh = found
+    .filter((video) => !known.has(video.videoId))
+    .sort((a, b) => b.post.views - a.post.views)
+    .slice(0, TRACKED);
+  onStep(
+    `${found.length} ${found.length === 1 ? "post carries" : "posts carry"} the tag, ${fresh.length} of them new here`,
+  );
+  if (fresh.length === 0) return { added: [], posts: saved };
+
+  // The tagged post is reviewed as found. The creator's other posts are
+  // fetched to set what is normal for them, and a creator who cannot be
+  // fetched is still reviewed, only without that comparison.
+  const profiles = new Map<string, Awaited<ReturnType<typeof fetchCreator>> | null>();
+  const candidates: Candidate[] = [];
+  for (const { handle, name, videoId, post } of fresh) {
+    if (!profiles.has(handle)) {
+      onStep(`Fetching @${handle}'s numbers`);
+      profiles.set(
+        handle,
+        budget.callsLeft >= 2 ? await fetchCreator(handle, budget).catch(() => null) : null,
+      );
+    }
+    const profile = profiles.get(handle);
+    const current = profile?.posts.find((other) => other.id === videoId) ?? post;
+    candidates.push({
+      id: videoId,
+      handle,
+      name: profile?.name ?? name,
+      avatarLink: profile?.avatarLink,
+      post: current,
+      others: profile?.posts.filter((other) => other.id !== videoId) ?? [],
+      submitted: true,
+    });
+  }
+
+  const added = await review(brand, brief, candidates, onStep);
+  onStep(`Added ${added.length} ${added.length === 1 ? "post" : "posts"}: ${summary(added)}`);
+  return { added, posts: [...added, ...saved] };
 }
