@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Rewind } from "lucide-react";
 import { AgentRunPanel, MissingKeys, Spinner, useAgentRun } from "@/components/agent-run";
-import { Badge, Button, Tile } from "@/components/ui";
+import { Button, Tile } from "@/components/ui";
 
 // One press runs every agent in order. When a real run has been recorded
 // for this program, it can also be played back fast: same steps, same
@@ -37,7 +37,6 @@ export function ProgramRun({
     }
   };
 
-  const minutes = recorded ? Math.max(1, Math.round(recorded / 60)) : 0;
 
   return (
     <>
@@ -84,13 +83,6 @@ export function ProgramRun({
             {running && !replaying ? "Running…" : "Run the Program"}
           </Button>
         </div>
-        {replaying && run.state !== "idle" ? (
-          <p className="flex basis-full items-center gap-2 text-[13px] text-faint">
-            <Badge>Replay</Badge>
-            A real run recorded earlier, played back fast. It took about {minutes}{" "}
-            {minutes === 1 ? "minute" : "minutes"} live.
-          </p>
-        ) : null}
       </section>
       <MissingKeys agent="Strategy" keys={missingKeys} />
       <AgentRunPanel run={run} agent="Program" doneTitle="Program ready for your approval" />
