@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Play, Rewind } from "lucide-react";
 import { AgentRunPanel, MissingKeys, Spinner, useAgentRun } from "@/components/agent-run";
 import { Badge, Button, Tile } from "@/components/ui";
@@ -11,14 +12,30 @@ import { Badge, Button, Tile } from "@/components/ui";
 export function ProgramRun({
   missingKeys,
   recorded,
+  hasResults,
 }: {
   missingKeys: string[];
+  // Whether any screen has results that Start Over would clear.
+  hasResults: boolean;
   // How long the recorded run took, in seconds, when there is one.
   recorded?: number;
 }) {
   // The screens behind the panel refresh as each agent hands over.
   const { run, start, startWith, running } = useAgentRun("/api/program/run", /agent started$/);
   const [replaying, setReplaying] = useState(false);
+  const router = useRouter();
+  const [clearing, setClearing] = useState(false);
+
+  // Empties the screens, so a run or a replay can be shown from the start.
+  const startOver = async () => {
+    setClearing(true);
+    try {
+      await fetch("/api/program/reset", { method: "POST" });
+      router.refresh();
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const minutes = recorded ? Math.max(1, Math.round(recorded / 60)) : 0;
 
@@ -38,6 +55,11 @@ export function ProgramRun({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {hasResults ? (
+            <Button variant="quiet" disabled={running || clearing} onClick={startOver}>
+              {clearing ? "Clearing…" : "Start Over"}
+            </Button>
+          ) : null}
           {recorded ? (
             <Button
               disabled={running}

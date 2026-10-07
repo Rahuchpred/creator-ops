@@ -116,6 +116,27 @@ export async function runProgram(onStep: OnStep): Promise<void> {
   await writeFile(RECORDING, JSON.stringify(recording));
 }
 
+// Empties every screen for the current program. What was there is set
+// aside in the archive folder, not deleted.
+export async function clearResults(): Promise<void> {
+  const aside = path.join(DATA_DIR, "archive", `cleared-${Date.now()}`);
+  for (const file of [
+    "brief.json",
+    "roster.json",
+    "outreach.json",
+    "posts.json",
+    "payouts.json",
+    "activity.json",
+  ]) {
+    try {
+      await mkdir(aside, { recursive: true });
+      await rename(path.join(DATA_DIR, file), path.join(aside, file));
+    } catch {
+      // Nothing saved for that screen.
+    }
+  }
+}
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Plays the last real run back. The screens start empty, and each agent's
@@ -126,16 +147,7 @@ export async function replayProgram(onStep: OnStep): Promise<Recording> {
     throw new Error("There is no recorded run for this program yet. Run the program once first.");
   }
 
-  // Start from empty: what is on the screens now is set aside, not deleted.
-  const aside = path.join(DATA_DIR, "archive", `replay-${Date.now()}`);
-  for (const file of ["brief.json", "roster.json", "outreach.json", "posts.json", "payouts.json"]) {
-    try {
-      await mkdir(aside, { recursive: true });
-      await rename(path.join(DATA_DIR, file), path.join(aside, file));
-    } catch {
-      // Nothing saved for that screen.
-    }
-  }
+  await clearResults();
 
   // The pictures the recording points at, for a server that never saved them.
   await cp(path.join(SHIPPED, "media"), path.join(DATA_DIR, "media"), {

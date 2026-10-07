@@ -170,6 +170,7 @@ async function Overview() {
       <ProgramRun
         missingKeys={[...new Set([...missingStrategyKeys(), ...missingResearchKeys()])]}
         recorded={recording?.seconds}
+        hasResults={hasResults || brief !== null}
       />
 
       <section
