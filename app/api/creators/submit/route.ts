@@ -10,6 +10,23 @@ export const maxDuration = 300;
 
 const Body = z.object({ link: z.string().trim().min(1).max(500) });
 
+// The page is public and each check costs a few cents, so checks are
+// capped: a handful per visitor an hour, and a ceiling for everyone a day.
+// Counted in memory, which is enough for one small server.
+const PER_VISITOR_AN_HOUR = 5;
+const FOR_EVERYONE_A_DAY = 60;
+const recent: { who: string; at: number }[] = [];
+
+function overLimit(who: string): boolean {
+  const now = Date.now();
+  while (recent.length > 0 && now - recent[0].at > 86_400_000) recent.shift();
+  if (recent.length >= FOR_EVERYONE_A_DAY) return true;
+  const mine = recent.filter((check) => check.who === who && now - check.at < 3_600_000);
+  if (mine.length >= PER_VISITOR_AN_HOUR) return true;
+  recent.push({ who, at: now });
+  return false;
+}
+
 const refuse = (message: string, status = 400) =>
   Response.json({ type: "error", message }, { status });
 
@@ -27,6 +44,11 @@ export async function POST(request: Request) {
   }
   if (!(await currentBrief())) {
     return refuse("The brief is not written yet, so videos cannot be checked. Try again later.", 409);
+  }
+
+  const visitor = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (overLimit(visitor)) {
+    return refuse("Too many videos were checked just now. Try again in an hour.", 429);
   }
 
   return streamAgent("Marketing", [], async (step) => {

@@ -13,7 +13,9 @@ import { handleKey } from "@/lib/review/trust";
 
 // Files on disk stand in for the database until InstaCloud is connected.
 // Kept free of framework imports so the agent worker can use it too.
-const DIR = path.join(process.cwd(), ".data");
+// DATA_DIR points at the persistent disk when the app is hosted.
+export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), ".data");
+const DIR = DATA_DIR;
 const BRIEF = path.join(DIR, "brief.json");
 const ROSTER = path.join(DIR, "roster.json");
 const OUTREACH = path.join(DIR, "outreach.json");

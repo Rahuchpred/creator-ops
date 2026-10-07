@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const DIR = path.join(process.cwd(), ".data", "media");
+const DIR = path.join(process.env.DATA_DIR ?? path.join(process.cwd(), ".data"), "media");
 
 // The formats every browser can show. TikTok also serves HEIC, which most
 // cannot, so those are skipped.
