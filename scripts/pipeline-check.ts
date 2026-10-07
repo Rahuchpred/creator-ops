@@ -18,7 +18,19 @@ const client = new RocketRideClient({
 await client.connect();
 // Optional second argument: another pipeline file, for isolating a problem.
 const file = process.argv[3] ?? path.join(process.cwd(), "pipelines", "strategy.pipe");
-const { token } = await client.use({ filepath: file });
+// A run that was cut off leaves its task alive on the engine, which then
+// refuses to start the pipeline again. Stop the leftover and start fresh.
+async function start() {
+  try {
+    return await client.use({ filepath: file });
+  } catch (error) {
+    if (!String(error).includes("already running")) throw error;
+    const leftover = await client.use({ filepath: file, useExisting: true });
+    await client.terminate(leftover.token);
+    return client.use({ filepath: file });
+  }
+}
+const { token } = await start();
 console.log("started", token.slice(0, 10));
 try {
   const question = new Question({ expectJson: true });

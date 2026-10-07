@@ -8,11 +8,11 @@ import {
   LayoutGrid,
   MessagesSquare,
   Send,
+  SlidersHorizontal,
   Users,
   Wallet,
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
-import { brand } from "@/lib/data";
 import { cx } from "@/lib/format";
 
 const groups = [
@@ -20,6 +20,7 @@ const groups = [
     label: "Program",
     links: [
       { href: "/", label: "Overview", icon: LayoutGrid },
+      { href: "/program", label: "Setup", icon: SlidersHorizontal },
       { href: "/brief", label: "Brief", icon: FileText },
     ],
   },
@@ -43,7 +44,7 @@ const groups = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ name }: { name: string }) {
   const pathname = usePathname();
 
   return (
@@ -56,7 +57,7 @@ export function Sidebar() {
           <LogoMark className="size-5 text-white" />
         </span>
         <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold tracking-tight">{brand.name}</div>
+          <div className="truncate text-[15px] font-semibold tracking-tight">{name}</div>
           <div className="truncate text-xs text-faint">Creator program</div>
         </div>
       </div>

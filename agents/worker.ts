@@ -8,8 +8,7 @@ import { findCreators } from "@/lib/agents/research";
 import { reviewPosts } from "@/lib/agents/review";
 import { runSales } from "@/lib/agents/sales-run";
 import { writeBrief } from "@/lib/agents/strategy";
-import { brand, brief as sampleBrief } from "@/lib/data";
-import { logHandoff, readBrief, saveBrief, savePosts, saveRoster } from "@/lib/files";
+import { briefForWork, currentBrand, logHandoff, saveBrief, savePosts, saveRoster } from "@/lib/files";
 import { summarize } from "@/lib/review/checks";
 
 type Role = "strategy" | "research" | "sales" | "review";
@@ -74,6 +73,7 @@ async function recipient(role: Role, tools: Turn["tools"]) {
 }
 
 const strategy: GenericAdapterHandler = async ({ tools }) => {
+  const brand = await currentBrand();
   await tools.sendEvent(`Writing a new brief for ${brand.name}`, "thought");
   const today = new Date().toISOString().slice(0, 10);
 
@@ -106,10 +106,11 @@ const strategy: GenericAdapterHandler = async ({ tools }) => {
 };
 
 const research: GenericAdapterHandler = async ({ tools }) => {
+  const brand = await currentBrand();
   await tools.sendEvent(`Building the roster for ${brand.name}`, "thought");
 
   try {
-    const brief = (await readBrief()) ?? sampleBrief;
+    const brief = await briefForWork();
     const roster = await findCreators(brand, brief, (step) => {
       void tools.sendEvent(step, "thought");
     });
@@ -142,6 +143,7 @@ const research: GenericAdapterHandler = async ({ tools }) => {
 // Sales always reports to the person, because they approve the drafts before
 // anything else happens.
 const sales: GenericAdapterHandler = async ({ tools }) => {
+  const brand = await currentBrand();
   await tools.sendEvent(`Drafting outreach for ${brand.name}`, "thought");
 
   try {
@@ -170,10 +172,11 @@ const sales: GenericAdapterHandler = async ({ tools }) => {
 // Review is the end of the chain, so its report goes to the person, who
 // decides the flagged posts and approves the payouts.
 const review: GenericAdapterHandler = async ({ tools }) => {
+  const brand = await currentBrand();
   await tools.sendEvent(`Reviewing posts for ${brand.name}`, "thought");
 
   try {
-    const brief = (await readBrief()) ?? sampleBrief;
+    const brief = await briefForWork();
     const posts = await reviewPosts(brand, brief, (step) => {
       void tools.sendEvent(step, "thought");
     });

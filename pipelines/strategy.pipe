@@ -3,8 +3,18 @@
     {
       "id": "chat_1",
       "provider": "chat",
-      "config": { "hideForm": true, "mode": "Source", "parameters": {}, "type": "chat" },
-      "ui": { "position": { "x": 0, "y": 160 } }
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "chat"
+      },
+      "ui": {
+        "position": {
+          "x": 0,
+          "y": 160
+        }
+      }
     },
     {
       "id": "strategist",
@@ -12,17 +22,27 @@
       "config": {
         "instructions": [
           "You are the strategy lead for a creator program. A brand pays small creators per view to post short videos on TikTok and Instagram Reels. You are given the brand, its pay and its rules, and you write the brief that tells creators what to make.",
-          "Before you write, delegate to the research sub-agent. Ask it what is working in this brand's niche right now: which video formats are getting views, which opening lines hold attention, and what creators for competing apps are doing. Ask follow-up questions until you could defend every line of the brief with something it found.",
+          "Before you write, delegate to the research sub-agent, once. In that one request, ask what is working in this brand's niche right now: which video formats are getting views, which opening lines hold attention, and what creators for competing apps are doing. Do not ask follow-up questions. Write the brief from what it reports. Keep that request under 60 words of plain text, with no quotation marks or line breaks.",
           "Then write the brief. Creators skim it on a phone, so every line has to be concrete enough to act on. Write the way a sharp program manager talks to a creator: short sentences, no marketing language, no hype. Opening lines are the literal first words a creator would say or put on screen.",
           "The brand's rules are not negotiable. Carry each one into mustInclude or avoid, in plain words.",
           "Every reference must trace back to a page the research sub-agent actually opened. Use that page's exact URL, or an empty string when there is none. Never invent a URL.",
           "Reply with one JSON object and nothing else, with these keys: goal (one sentence, the single action viewers should take), angle (two or three sentences, the idea every video carries), hooks (three to five opening lines), mustInclude (what every post includes), avoid (what to leave out), references (two to four objects with title, why and url), sources (every page the researcher opened, as objects with title, url and site)."
         ],
-        "max_waves": 12,
+        "max_waves": 4,
         "parameters": {}
       },
-      "input": [{ "lane": "questions", "from": "chat_1" }],
-      "ui": { "position": { "x": 320, "y": 160 } }
+      "input": [
+        {
+          "lane": "questions",
+          "from": "chat_1"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 320,
+          "y": 160
+        }
+      }
     },
     {
       "id": "researcher",
@@ -31,14 +51,24 @@
         "instructions": [
           "You are the research sub-agent for a creator program's strategy lead. You find out what is working on TikTok and Instagram Reels in a given niche right now, so the brief is grounded in real posts and not in general advice.",
           "Search the live web through the Querit API with the HTTP request tool. Send a POST to https://api.querit.ai/v1/search with bearer token ${ROCKETRIDE_QUERIT_KEY} and a JSON body like {\"query\": \"...\", \"count\": 8, \"highlights\": true, \"filters\": {\"timeRange\": {\"date\": \"m1\"}}}. The date filter takes w1 for the last week, m1 for the last month, y1 for the last year. Results come back under results.result, each with url, title, snippet and highlights.",
-          "Run several specific searches, not one broad one. Prefer recent results. Read the highlights before trusting a title.",
+          "Work in two rounds at most. In the first round, send five or six specific searches at once, not one broad one. Use a second round only to fill a real gap. Then report straight away. Do not save notes to memory between rounds. Prefer recent results, and read the highlights before trusting a title.",
           "Report back in plain notes. For every claim, name the page it came from and give its exact URL. Say plainly when you could not find evidence for something. Finish with the full list of pages you opened, each with title, URL and site name."
         ],
-        "max_waves": 10,
+        "max_waves": 3,
         "parameters": {}
       },
-      "control": [{ "classType": "tool", "from": "strategist" }],
-      "ui": { "position": { "x": 320, "y": 400 } }
+      "control": [
+        {
+          "classType": "tool",
+          "from": "strategist"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 320,
+          "y": 400
+        }
+      }
     },
     {
       "id": "claude",
@@ -54,41 +84,104 @@
         "parameters": {}
       },
       "control": [
-        { "classType": "llm", "from": "strategist" },
-        { "classType": "llm", "from": "researcher" }
+        {
+          "classType": "llm",
+          "from": "strategist"
+        },
+        {
+          "classType": "llm",
+          "from": "researcher"
+        }
       ],
-      "ui": { "position": { "x": 640, "y": 320 } }
+      "ui": {
+        "position": {
+          "x": 640,
+          "y": 320
+        }
+      }
     },
     {
       "id": "strategist_memory",
       "provider": "memory_internal",
-      "config": { "type": "memory_internal" },
-      "control": [{ "classType": "memory", "from": "strategist" }],
-      "ui": { "position": { "x": 640, "y": 40 } }
+      "config": {
+        "type": "memory_internal"
+      },
+      "control": [
+        {
+          "classType": "memory",
+          "from": "strategist"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 640,
+          "y": 40
+        }
+      }
     },
     {
       "id": "researcher_memory",
       "provider": "memory_internal",
-      "config": { "type": "memory_internal" },
-      "control": [{ "classType": "memory", "from": "researcher" }],
-      "ui": { "position": { "x": 640, "y": 560 } }
+      "config": {
+        "type": "memory_internal"
+      },
+      "control": [
+        {
+          "classType": "memory",
+          "from": "researcher"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 640,
+          "y": 560
+        }
+      }
     },
     {
       "id": "querit",
       "provider": "tool_http_request",
-      "config": { "type": "tool_http_request" },
-      "control": [{ "classType": "tool", "from": "researcher" }],
-      "ui": { "position": { "x": 0, "y": 400 } }
+      "config": {
+        "type": "tool_http_request"
+      },
+      "control": [
+        {
+          "classType": "tool",
+          "from": "researcher"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 0,
+          "y": 400
+        }
+      }
     },
     {
       "id": "answer",
       "provider": "response_answers",
-      "config": { "laneName": "answers" },
-      "input": [{ "lane": "answers", "from": "strategist" }],
-      "ui": { "position": { "x": 960, "y": 160 } }
+      "config": {
+        "laneName": "answers"
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "strategist"
+        }
+      ],
+      "ui": {
+        "position": {
+          "x": 960,
+          "y": 160
+        }
+      }
     }
   ],
   "project_id": "5d0e7c1a-3b62-4f0e-9c1d-7a4c2e8b9f10",
-  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
   "version": 1
 }

@@ -6,6 +6,8 @@ export type Platform = "TikTok" | "Instagram";
 
 export type Brand = {
   name: string;
+  // Optional. The Strategy agent reads it when it is set.
+  website?: string;
   product: string;
   audience: string;
   monthlyBudget: number;

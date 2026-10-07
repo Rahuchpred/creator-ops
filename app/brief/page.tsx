@@ -56,6 +56,21 @@ function Checklist({
 async function BriefView() {
   const brief = await getBrief();
 
+  if (!brief) {
+    return (
+      <>
+        <BriefHeader missingKeys={missingStrategyKeys()} />
+        <div className="card p-8 text-center">
+          <h2 className="text-sm font-semibold">No brief yet</h2>
+          <p className="mx-auto mt-1 max-w-[52ch] text-sm text-pretty text-muted">
+            Press Write the brief. The Strategy agent researches what is working for this
+            program right now and writes it in about two minutes.
+          </p>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <BriefHeader

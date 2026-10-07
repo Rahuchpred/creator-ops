@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Sidebar } from "@/components/sidebar";
+import { getProgram } from "@/lib/store";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,6 +22,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#ffffff" };
 
+// The brand name comes from the saved program, read per request.
+async function NamedSidebar() {
+  const { brand } = await getProgram();
+  return <Sidebar name={brand.name} />;
+}
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -31,7 +39,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <Sidebar />
+        <Suspense fallback={<Sidebar name="" />}>
+          <NamedSidebar />
+        </Suspense>
         <main id="main" className="min-w-0 flex-1">
           <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 md:px-10 md:py-12">
             {children}

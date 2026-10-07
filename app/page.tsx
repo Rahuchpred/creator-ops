@@ -4,9 +4,9 @@ import { connection } from "next/server";
 import { Eye, Wallet } from "lucide-react";
 import { BlueField } from "@/components/blue-field";
 import { AgentTile, Badge, PageHeader, Tile, buttonClass } from "@/components/ui";
-import { brand, totals } from "@/lib/data";
+import { totals } from "@/lib/data";
 import { formatCompact, formatDollars, formatMoney } from "@/lib/format";
-import { missingStrategyKeys } from "@/lib/store";
+import { getProgram, missingStrategyKeys } from "@/lib/store";
 
 const agents = [
   { name: "Strategy", job: "Writes the brief" },
@@ -25,7 +25,9 @@ async function StrategyStatus() {
   );
 }
 
-export default function OverviewPage() {
+// Read per request, so a program saved a moment ago shows on refresh.
+async function Overview() {
+  const { brand, sample } = await getProgram();
   const spentShare = Math.round((totals.spend / brand.monthlyBudget) * 100);
 
   const stats = [
@@ -38,7 +40,10 @@ export default function OverviewPage() {
   return (
     <>
       <PageHeader title={brand.name} description={brand.product}>
-        <Badge>Sample data</Badge>
+        <Badge>{sample ? "Sample program" : "Sample numbers"}</Badge>
+        <Link href="/program" className={buttonClass()}>
+          {sample ? "Set Up Your Program" : "Edit Program"}
+        </Link>
       </PageHeader>
 
       <section
@@ -146,5 +151,19 @@ export default function OverviewPage() {
         </ul>
       </section>
     </>
+  );
+}
+
+export default function OverviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="text-sm text-muted">
+          Loading the program…
+        </p>
+      }
+    >
+      <Overview />
+    </Suspense>
   );
 }

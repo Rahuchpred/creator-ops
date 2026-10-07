@@ -42,6 +42,7 @@ export type StrategyResult = { brief: Brief; sources: Source[] };
 function describeBrand(brand: Brand) {
   return [
     `Brand: ${brand.name}`,
+    ...(brand.website ? [`Website: ${brand.website}`] : []),
     `Product: ${brand.product}`,
     `Audience: ${brand.audience}`,
     `Pay: $${brand.ratePerThousandViews} per 1,000 views, up to $${brand.payoutCapPerPost} a post`,

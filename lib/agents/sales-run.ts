@@ -1,6 +1,5 @@
 import { draftOutreach, type Prospect } from "@/lib/agents/sales";
-import { brand, brief as sampleBrief } from "@/lib/data";
-import { readBrief, readRoster, saveOutreach, type Outreach } from "@/lib/files";
+import { briefForWork, currentBrand, readRoster, saveOutreach, type Outreach } from "@/lib/files";
 
 // The most creators one run writes to, so a person can read every draft.
 const LIMIT = 8;
@@ -34,8 +33,8 @@ export async function runSales(onStep: (label: string) => void): Promise<Outreac
     note: creator.reason,
   }));
 
-  const brief = (await readBrief()) ?? sampleBrief;
-  const drafts = await draftOutreach(brand, brief, prospects, onStep);
+  const brief = await briefForWork();
+  const drafts = await draftOutreach(await currentBrand(), brief, prospects, onStep);
 
   const draftedAt = new Date().toISOString();
   const outreach: Outreach[] = drafts.map((draft) => ({

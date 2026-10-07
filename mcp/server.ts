@@ -18,9 +18,12 @@ import { findCreators } from "@/lib/agents/research";
 import { reviewPosts } from "@/lib/agents/review";
 import { runSales } from "@/lib/agents/sales-run";
 import { writeBrief } from "@/lib/agents/strategy";
-import { brand, brief as sampleBrief, creators as sampleCreators } from "@/lib/data";
+import { creators as sampleCreators } from "@/lib/data";
 import {
   readActivity,
+  briefForWork,
+  currentBrand,
+  currentBrief,
   readBrief,
   readOutreach,
   readPosts,
@@ -135,7 +138,7 @@ server.registerTool(
       "Returns the brand this creator program runs for: its product, audience, monthly budget, pay rules (rate per 1,000 views, payout cap per post, minimum views before a post pays), the follower range it recruits creators from, and the rules every post follows. Free and instant. Start here when you need to know what the program is or how creators are paid.",
     annotations: readOnly,
   },
-  async () => json(brand),
+  async () => json(await currentBrand()),
 );
 
 server.registerTool(
@@ -148,7 +151,9 @@ server.registerTool(
   },
   async () => {
     const saved = await readBrief();
-    const { sources, ...brief } = saved ?? sampleBrief;
+    const shown = await currentBrief();
+    if (!shown) return json({ source: "none", note: "No brief yet. Run write_brief first." });
+    const { sources, ...brief } = shown;
     return json({ source: saved ? "saved" : "sample", ...brief, sourcesRead: sources.length });
   },
 );
@@ -268,7 +273,7 @@ server.registerTool(
   async (extra) =>
     runAgent("strategy", extra, async (step) => {
       const today = new Date().toISOString().slice(0, 10);
-      const { brief } = await writeBrief(brand, today, step);
+      const { brief } = await writeBrief(await currentBrand(), today, step);
       await saveBrief(brief);
       return {
         saved: true,
@@ -290,8 +295,8 @@ server.registerTool(
   },
   async (extra) =>
     runAgent("research", extra, async (step) => {
-      const brief = (await readBrief()) ?? sampleBrief;
-      const roster = await findCreators(brand, brief, step);
+      const brief = await briefForWork();
+      const roster = await findCreators(await currentBrand(), brief, step);
       await saveRoster(roster);
 
       const suggested = roster
@@ -344,8 +349,8 @@ server.registerTool(
       if (!(await readRoster())) {
         throw new Error("There is no roster yet. Run find_creators first.");
       }
-      const brief = (await readBrief()) ?? sampleBrief;
-      const posts = await reviewPosts(brand, brief, step);
+      const brief = await briefForWork();
+      const posts = await reviewPosts(await currentBrand(), brief, step);
       await savePosts(posts);
       return { saved: true, reviewed: posts.length, ...summarize(posts) };
     }),

@@ -8,8 +8,9 @@ export function BriefHeader({
   writtenBy,
   missingKeys,
 }: {
-  updated: string;
-  writtenBy: string;
+  // Left out when no brief has been written yet.
+  updated?: string;
+  writtenBy?: string;
   missingKeys: string[];
 }) {
   const { run, start, running } = useAgentRun("/api/agents/strategy");
@@ -20,12 +21,14 @@ export function BriefHeader({
         title="Brief"
         description="What creators are asked to make. Every post is scored against this page."
       >
-        <Badge>
-          {writtenBy}, {updated}
-        </Badge>
+        {writtenBy ? (
+          <Badge>
+            {writtenBy}, {updated}
+          </Badge>
+        ) : null}
         <Button variant="primary" onClick={start} disabled={running || missingKeys.length > 0}>
           {running ? <Spinner /> : null}
-          {running ? "Writing…" : "Write a new brief"}
+          {running ? "Writing…" : writtenBy ? "Write a new brief" : "Write the brief"}
         </Button>
       </PageHeader>
       <MissingKeys agent="Strategy" keys={missingKeys} />

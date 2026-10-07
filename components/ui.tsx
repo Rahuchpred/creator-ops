@@ -58,7 +58,7 @@ export function PageHeader({
   children,
 }: {
   title: string;
-  description: string;
+  description: ReactNode;
   children?: ReactNode;
 }) {
   return (

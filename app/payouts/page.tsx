@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/ui";
-import { brand, payouts as samplePayouts } from "@/lib/data";
+import { payouts as samplePayouts } from "@/lib/data";
 import { formatDollars, formatMoney, formatNumber } from "@/lib/format";
 import { payoutsFrom } from "@/lib/review/checks";
-import { getPosts } from "@/lib/store";
+import { getPosts, getProgram } from "@/lib/store";
 import { PayoutsList } from "./payouts-list";
 
 export const metadata: Metadata = { title: "Payouts" };
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Payouts" };
 // Read per request. Once the Review agent has run, the rows come from the
 // posts it approved, not from the sample data.
 async function PayoutsView() {
-  const { posts, sample } = await getPosts();
+  const [{ posts, sample }, { brand }] = await Promise.all([getPosts(), getProgram()]);
   const payouts = sample ? samplePayouts : payoutsFrom(posts);
 
   if (payouts.length === 0) {
@@ -34,12 +34,28 @@ async function PayoutsView() {
   return <PayoutsList payouts={payouts} avatars={avatars} />;
 }
 
+// The pay terms come from the saved program.
+async function Terms() {
+  const { brand } = await getProgram();
+  return (
+    <>
+      Approved posts pay {formatMoney(brand.ratePerThousandViews)} per 1,000 views, up to{" "}
+      {formatDollars(brand.payoutCapPerPost)} a post, once they pass{" "}
+      {formatNumber(brand.minimumViews)} views.
+    </>
+  );
+}
+
 export default function PayoutsPage() {
   return (
     <>
       <PageHeader
         title="Payouts"
-        description={`Approved posts pay ${formatMoney(brand.ratePerThousandViews)} per 1,000 views, up to ${formatDollars(brand.payoutCapPerPost)} a post, once they pass ${formatNumber(brand.minimumViews)} views.`}
+        description={
+          <Suspense fallback="Approved posts are paid per 1,000 views.">
+            <Terms />
+          </Suspense>
+        }
       />
       <Suspense
         fallback={

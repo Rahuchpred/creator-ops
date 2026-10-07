@@ -1,17 +1,19 @@
 import { connection } from "next/server";
 import {
-  brief as sampleBrief,
+  brand as sampleBrand,
   creators as sampleCreators,
   posts as samplePosts,
+  type Brand,
   type Brief,
   type Creator,
   type Post,
 } from "@/lib/data";
 import {
+  currentBrief,
   readActivity,
-  readBrief,
   readOutreach,
   readPosts,
+  readProgram,
   readRoster,
   type Handoff,
   type Outreach,
@@ -20,16 +22,28 @@ import {
 export { saveBrief, saveOutreach, savePosts, saveRoster } from "@/lib/files";
 
 // Read per request, so a brief an agent just wrote shows up on refresh.
-export async function getBrief(): Promise<Brief> {
+// Nothing when a person has set up a program and no brief is written yet.
+export async function getBrief(): Promise<Brief | null> {
   await connection();
-  return (await readBrief()) ?? sampleBrief;
+  return currentBrief();
 }
+
+// The program the agents work for, and whether it is still the sample one.
+export async function getProgram(): Promise<{ brand: Brand; sample: boolean }> {
+  await connection();
+  const saved = await readProgram();
+  return { brand: saved ?? sampleBrand, sample: !saved };
+}
+
+// Sample rows belong to the sample program only.
+const sampleRows = async () => !(await readProgram());
 
 // The roster the Research agent built, or the sample one before its first run.
 export async function getRoster(): Promise<{ creators: Creator[]; sample: boolean }> {
   await connection();
   const saved = await readRoster();
-  return saved ? { creators: saved, sample: false } : { creators: sampleCreators, sample: true };
+  if (saved) return { creators: saved, sample: false };
+  return (await sampleRows()) ? { creators: sampleCreators, sample: true } : { creators: [], sample: false };
 }
 
 // The drafts the Sales agent wrote, or none before its first run.
@@ -42,7 +56,8 @@ export async function getOutreach(): Promise<Outreach[]> {
 export async function getPosts(): Promise<{ posts: Post[]; sample: boolean }> {
   await connection();
   const saved = await readPosts();
-  return saved ? { posts: saved, sample: false } : { posts: samplePosts, sample: true };
+  if (saved) return { posts: saved, sample: false };
+  return (await sampleRows()) ? { posts: samplePosts, sample: true } : { posts: [], sample: false };
 }
 
 export async function getActivity(): Promise<Handoff[]> {
