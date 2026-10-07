@@ -111,7 +111,7 @@ export async function findCreators(
           engagementRate: Number(metrics.engagementRate.toFixed(4)),
           postsPerWeek: Number(metrics.postsPerWeek.toFixed(1)),
           fraudFlags: metrics.flags,
-          recentCaptions: creator.posts.slice(0, 10).map((post) => post.caption),
+          recentCaptions: creator.posts.slice(0, 10).map((post) => post.caption.slice(0, 200)),
         });
       } catch (error) {
         return `Could not fetch @${key}: ${error instanceof Error ? error.message : "unknown error"}`;

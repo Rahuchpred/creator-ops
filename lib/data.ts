@@ -50,7 +50,12 @@ export type Creator = {
   url?: string;
 };
 
-export type PostFlag = "View spike" | "No disclosure" | null;
+export type PostFlag =
+  | "View spike"
+  | "Low engagement"
+  | "Under 1,000 views"
+  | "No disclosure"
+  | null;
 export type PostStatus = "In review" | "Approved" | "Rejected";
 
 export type Post = {
@@ -61,8 +66,17 @@ export type Post = {
   postedAt: string;
   views: number;
   briefScore: number;
+  // The most serious flag on the post. The Review agent lists all of them
+  // in `flags`.
   flag: PostFlag;
   status: PostStatus;
+  // Filled in by the Review agent. Sample rows leave these out.
+  name?: string;
+  flags?: NonNullable<PostFlag>[];
+  feedback?: string;
+  engagementRate?: number;
+  payout?: number;
+  url?: string;
 };
 
 export type PayoutStatus = "Awaiting approval" | "Approved" | "Paid";

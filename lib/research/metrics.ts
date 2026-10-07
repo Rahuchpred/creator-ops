@@ -5,6 +5,7 @@
 import type { Brand } from "@/lib/data";
 
 export type FetchedPost = {
+  url?: string;
   caption: string;
   views: number;
   likes: number;

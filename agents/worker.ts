@@ -5,10 +5,12 @@
 
 import { Agent, GenericAdapter, type GenericAdapterHandler } from "@band-ai/sdk";
 import { findCreators } from "@/lib/agents/research";
+import { reviewPosts } from "@/lib/agents/review";
 import { runSales } from "@/lib/agents/sales-run";
 import { writeBrief } from "@/lib/agents/strategy";
 import { brand, brief as sampleBrief } from "@/lib/data";
-import { logHandoff, readBrief, saveBrief, saveRoster } from "@/lib/files";
+import { logHandoff, readBrief, saveBrief, savePosts, saveRoster } from "@/lib/files";
+import { summarize } from "@/lib/review/checks";
 
 type Role = "strategy" | "research" | "sales" | "review";
 
@@ -165,9 +167,46 @@ const sales: GenericAdapterHandler = async ({ tools }) => {
   }
 };
 
-// Only agents that exist get a handler. Review joins this table when it is
-// built.
-const handlers: Partial<Record<Role, GenericAdapterHandler>> = { strategy, research, sales };
+// Review is the end of the chain, so its report goes to the person, who
+// decides the flagged posts and approves the payouts.
+const review: GenericAdapterHandler = async ({ tools }) => {
+  await tools.sendEvent(`Reviewing posts for ${brand.name}`, "thought");
+
+  try {
+    const brief = (await readBrief()) ?? sampleBrief;
+    const posts = await reviewPosts(brand, brief, (step) => {
+      void tools.sendEvent(step, "thought");
+    });
+    await savePosts(posts);
+
+    const { approved, inReview, rejected, totalPayout, topFlags } = summarize(posts);
+    const to = await person(tools);
+    const note = [
+      `${posts.length === 1 ? "1 post is" : `${posts.length} posts are`} reviewed for ${brand.name}: ${approved} approved, ${inReview} in review, ${rejected} rejected.`,
+      `Approved posts earn $${totalPayout.toFixed(2)} in total.`,
+      topFlags.length > 0
+        ? `Flags to look at: ${topFlags.map(({ flag, posts: count }) => `${flag} on ${count} ${count === 1 ? "post" : "posts"}`).join(", ")}.`
+        : "No flags came up.",
+      "Nothing has been paid. The reviews are on the Posts screen and the payouts wait for your approval.",
+    ].join("\n");
+
+    await tools.sendMessage(note, to ? [to] : undefined);
+    await logHandoff({ at: new Date().toISOString(), from: "Review", to: to ?? "the room", note });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unknown error";
+    await tools.sendMessage(
+      `I could not review the posts. ${reason}`,
+      await mention(tools),
+    );
+  }
+};
+
+const handlers: Partial<Record<Role, GenericAdapterHandler>> = {
+  strategy,
+  research,
+  sales,
+  review,
+};
 
 // Wraps a handler so it only runs for requests it is allowed to take.
 const guarded = (role: Role, handler: GenericAdapterHandler): GenericAdapterHandler =>

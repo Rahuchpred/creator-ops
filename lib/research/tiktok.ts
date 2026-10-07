@@ -30,8 +30,10 @@ type Stats = {
 };
 
 type Video = {
+  url?: string;
   desc?: string;
   is_ad?: boolean;
+  is_paid_partnership?: boolean;
   region?: string;
   desc_language?: string;
   create_time_utc?: string;
@@ -107,13 +109,17 @@ type Profile = {
 };
 
 const toPost = (video: Video): FetchedPost => ({
-  caption: (video.desc ?? "").slice(0, 200),
+  url: video.url,
+  // Kept long, because a disclosure tag often sits at the end of a caption.
+  caption: (video.desc ?? "").slice(0, 1000),
   views: video.statistics?.play_count ?? 0,
   likes: video.statistics?.digg_count ?? 0,
   comments: video.statistics?.comment_count ?? 0,
   shares: video.statistics?.share_count ?? 0,
   createdAt: video.create_time_utc ?? "",
-  isAd: Boolean(video.is_ad),
+  // TikTok's own paid partnership label. The looser `is_ad` field is true
+  // for posts that carry no label at all, so it does not count as disclosure.
+  isAd: Boolean(video.is_paid_partnership),
 });
 
 // A creator's profile and their recent posts: two paid calls.

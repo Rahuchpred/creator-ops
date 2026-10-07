@@ -10,7 +10,8 @@
     "agents": "node --env-file=.env.local --import tsx agents/worker.ts",
     "band:setup": "bun --env-file=.env.local scripts/band-setup.ts",
     "pipeline:check": "bun --env-file=.env.local scripts/pipeline-check.ts",
-    "research:check": "bun --env-file=.env.local scripts/research-check.ts"
+    "research:check": "bun --env-file=.env.local scripts/research-check.ts",
+    "review:check": "bun --env-file=.env.local scripts/review-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.0",

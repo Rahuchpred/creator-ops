@@ -11,7 +11,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { brand, totals } from "@/lib/data";
+import { brand } from "@/lib/data";
 import { cx } from "@/lib/format";
 
 const links = [
@@ -19,8 +19,8 @@ const links = [
   { href: "/brief", label: "Brief", icon: FileText },
   { href: "/roster", label: "Roster", icon: Users },
   { href: "/outreach", label: "Outreach", icon: Send },
-  { href: "/posts", label: "Posts", icon: Clapperboard, count: totals.flaggedPosts },
-  { href: "/payouts", label: "Payouts", icon: Wallet, count: totals.awaitingApproval },
+  { href: "/posts", label: "Posts", icon: Clapperboard },
+  { href: "/payouts", label: "Payouts", icon: Wallet },
   { href: "/activity", label: "Activity", icon: MessagesSquare },
 ];
 
@@ -44,7 +44,7 @@ export function Sidebar() {
 
       {/* The padding and negative margin leave room for the focus ring inside the scroller. */}
       <nav aria-label="Program" className="-m-1 flex gap-1 overflow-x-auto p-1 [scrollbar-width:none] md:flex-col">
-        {links.map(({ href, label, icon: Icon, count }) => {
+        {links.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
@@ -58,16 +58,6 @@ export function Sidebar() {
             >
               <Icon aria-hidden="true" className="size-[18px]" strokeWidth={1.6} />
               {label}
-              {count ? (
-                <span
-                  className={cx(
-                    "ml-auto grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-xs tabular-nums text-muted max-md:ml-0",
-                    active ? "bg-surface" : "bg-fill",
-                  )}
-                >
-                  {count}
-                </span>
-              ) : null}
             </Link>
           );
         })}

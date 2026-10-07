@@ -1,15 +1,23 @@
 import { connection } from "next/server";
-import { brief as sampleBrief, creators as sampleCreators, type Brief, type Creator } from "@/lib/data";
+import {
+  brief as sampleBrief,
+  creators as sampleCreators,
+  posts as samplePosts,
+  type Brief,
+  type Creator,
+  type Post,
+} from "@/lib/data";
 import {
   readActivity,
   readBrief,
   readOutreach,
+  readPosts,
   readRoster,
   type Handoff,
   type Outreach,
 } from "@/lib/files";
 
-export { saveBrief, saveOutreach, saveRoster } from "@/lib/files";
+export { saveBrief, saveOutreach, savePosts, saveRoster } from "@/lib/files";
 
 // Read per request, so a brief an agent just wrote shows up on refresh.
 export async function getBrief(): Promise<Brief> {
@@ -28,6 +36,13 @@ export async function getRoster(): Promise<{ creators: Creator[]; sample: boolea
 export async function getOutreach(): Promise<Outreach[]> {
   await connection();
   return (await readOutreach()) ?? [];
+}
+
+// The posts the Review agent reviewed, or the sample ones before its first run.
+export async function getPosts(): Promise<{ posts: Post[]; sample: boolean }> {
+  await connection();
+  const saved = await readPosts();
+  return saved ? { posts: saved, sample: false } : { posts: samplePosts, sample: true };
 }
 
 export async function getActivity(): Promise<Handoff[]> {
@@ -61,6 +76,16 @@ export function missingResearchKeys(): string[] {
 // The Sales agent only writes, so the model key is all it needs.
 export function missingSalesKeys(): string[] {
   const missing: string[] = [];
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    missing.push("ANTHROPIC_API_KEY");
+  }
+  return missing;
+}
+
+// The Review agent pulls each creator's posts through Glasser and scores
+// them with the model.
+export function missingReviewKeys(): string[] {
+  const missing: string[] = ["GLASSER_API_KEY"].filter((name) => !process.env[name]);
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     missing.push("ANTHROPIC_API_KEY");
   }

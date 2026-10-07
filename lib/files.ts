@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { OutreachDraft } from "@/lib/agents/sales";
-import type { Brief, Creator } from "@/lib/data";
+import type { Brief, Creator, Post } from "@/lib/data";
 
 // Files on disk stand in for the database until InstaCloud is connected.
 // Kept free of framework imports so the agent worker can use it too.
@@ -9,6 +9,7 @@ const DIR = path.join(process.cwd(), ".data");
 const BRIEF = path.join(DIR, "brief.json");
 const ROSTER = path.join(DIR, "roster.json");
 const OUTREACH = path.join(DIR, "outreach.json");
+const POSTS = path.join(DIR, "posts.json");
 const ACTIVITY = path.join(DIR, "activity.json");
 
 // A drafted message to one creator. Nothing is sent until a person approves it.
@@ -45,6 +46,9 @@ export const saveRoster = (roster: Creator[]) => write(ROSTER, roster);
 
 export const readOutreach = () => read<Outreach[]>(OUTREACH);
 export const saveOutreach = (outreach: Outreach[]) => write(OUTREACH, outreach);
+
+export const readPosts = () => read<Post[]>(POSTS);
+export const savePosts = (posts: Post[]) => write(POSTS, posts);
 
 export const readActivity = async () => (await read<Handoff[]>(ACTIVITY)) ?? [];
 
