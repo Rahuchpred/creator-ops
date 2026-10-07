@@ -172,3 +172,45 @@ body {
     animation: none;
   }
 }
+
+/* Landing page footer: the brand name across the full width. The type is
+   sized from the container, so it always spans it. The outline copy is
+   always visible. The light copy is a round blue gradient clipped to the
+   letters, centered on --gx and --gy, which the script moves. A mask sinks
+   the bottom of the letters into the page. */
+.wordmark {
+  --gx: 50%;
+  --gy: 45%;
+  position: relative;
+  container-type: inline-size;
+  user-select: none;
+  mask-image: linear-gradient(#000 30%, transparent 96%);
+}
+
+.wordmark span {
+  display: block;
+  color: transparent;
+  font-size: 18cqw;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.wordmark-outline {
+  -webkit-text-stroke: 1px var(--color-brand-200);
+}
+
+.wordmark-light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 26cqw at var(--gx) var(--gy),
+    var(--color-brand-500) 0%,
+    var(--color-brand-400) 35%,
+    transparent 72%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
