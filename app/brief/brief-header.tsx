@@ -29,7 +29,7 @@ export function BriefHeader({
         </Button>
       </PageHeader>
       <MissingKeys agent="Strategy" keys={missingKeys} />
-      <AgentRunPanel run={run} agent="Strategy" doneTitle="New brief saved" />
+      <AgentRunPanel run={run} agent="Strategy" doneTitle="New brief ready" />
     </>
   );
 }
