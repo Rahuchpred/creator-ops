@@ -357,7 +357,14 @@ export async function reviewPosts(
   }
 
   const rows = candidates.length > 0 ? await review(brand, brief, candidates, onStep) : [];
-  const all = [...rows, ...kept];
+  // An older post that could not be fetched keeps its last numbers, and its
+  // verdict is worked out again from them so the current rules apply.
+  const settled = kept.map((post): Post => {
+    if (post.decidedBy === "person") return post;
+    const status = verdictFor(post.briefScore, post.flags ?? []);
+    return { ...post, status, payout: payoutFor({ status, views: post.views }, brand) };
+  });
+  const all = [...rows, ...settled];
   onStep(`Review done: ${summary(all)}`);
   return all;
 }
