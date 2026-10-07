@@ -12,11 +12,13 @@ import {
   currentBrief,
   readActivity,
   readOutreach,
+  readPayoutApprovals,
   readPosts,
   readProgram,
   readRoster,
   type Handoff,
   type Outreach,
+  type PayoutApproval,
 } from "@/lib/files";
 
 export { saveBrief, saveOutreach, savePosts, saveRoster } from "@/lib/files";
@@ -58,6 +60,12 @@ export async function getPosts(): Promise<{ posts: Post[]; sample: boolean }> {
   const saved = await readPosts();
   if (saved) return { posts: saved, sample: false };
   return (await sampleRows()) ? { posts: samplePosts, sample: true } : { posts: [], sample: false };
+}
+
+// The payouts a person has approved, by post and amount.
+export async function getPayoutApprovals(): Promise<PayoutApproval[]> {
+  await connection();
+  return readPayoutApprovals();
 }
 
 export async function getActivity(): Promise<Handoff[]> {

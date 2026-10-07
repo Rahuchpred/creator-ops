@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { readOutreach } from "@/lib/files";
+import { markContacted, readOutreach } from "@/lib/files";
 import { saveOutreach } from "@/lib/store";
 
 const Body = z.object({ handle: z.string().trim().min(1) });
 
-// Marks one draft as approved. Approving sends nothing to the creator.
+// Marks one draft as approved and moves the creator to "Contacted" on the
+// roster. Approving sends nothing: the person sends the message themselves.
 export async function POST(request: Request) {
   const body = Body.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -25,5 +26,6 @@ export async function POST(request: Request) {
 
   const approved = { ...draft, status: "Approved" as const };
   await saveOutreach(outreach.map((row) => (row.handle === draft.handle ? approved : row)));
+  await markContacted(draft.handle);
   return Response.json(approved);
 }

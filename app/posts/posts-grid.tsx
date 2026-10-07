@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Eye, Heart, Target } from "lucide-react";
 import { DetailDialog, Fact } from "@/components/detail-dialog";
 import { Avatar, Cover } from "@/components/media";
-import { Badge, Chip, Handle, buttonClass, cardButtonClass } from "@/components/ui";
+import { Badge, Button, Chip, Handle, buttonClass, cardButtonClass } from "@/components/ui";
 import { payoutForPost, type Post } from "@/lib/data";
 import { cx, formatCompact, formatDay, formatMoney, formatNumber } from "@/lib/format";
 
@@ -55,11 +56,36 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
   // does not blank mid-close.
   const [chosen, setChosen] = useState<Post | null>(null);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [deciding, setDeciding] = useState(false);
+  const [problem, setProblem] = useState("");
+
+  // A person's final call on a held post. The saved post comes back with
+  // its payout worked out.
+  const decide = async (post: Post, status: "Approved" | "Rejected") => {
+    setDeciding(true);
+    setProblem("");
+    try {
+      const response = await fetch("/api/posts/decide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: post.id, status }),
+      });
+      const body = (await response.json()) as Post & { message?: string };
+      if (!response.ok) throw new Error(body.message ?? "The decision was not saved. Try again.");
+      setChosen(body);
+      router.refresh();
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "The decision was not saved. Try again.");
+    } finally {
+      setDeciding(false);
+    }
+  };
 
   if (posts.length === 0) {
     return (
       <p className="card p-10 text-center text-sm text-muted">
-        No posts have been reviewed. Press Review posts to run the Review agent.
+        No posts yet. Paste a creator&apos;s video link above to review the first one.
       </p>
     );
   }
@@ -145,6 +171,7 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
               />
               <div className="flex flex-wrap items-center gap-1.5">
                 <Badge tone={statusTone[chosen.status]}>{chosen.status}</Badge>
+                {chosen.decidedBy ? <Badge>Your call</Badge> : null}
                 {flagsOf(chosen).map((flag) => (
                   <Badge key={flag} tone="warn">
                     {flag}
@@ -185,12 +212,46 @@ export function PostsGrid({ posts }: { posts: Post[] }) {
                   <Fact label="Length" value={length(chosen.durationSeconds)} />
                 ) : null}
               </dl>
+              {chosen.feedback !== undefined ? (
+                <div className="flex flex-col gap-2 rounded-[16px] bg-fill p-4">
+                  <p className="text-sm text-pretty">
+                    {chosen.status === "In review"
+                      ? "This post is held for you. Approve it to pay it, or reject it."
+                      : "The final call is yours. Watch the video, then change it if you disagree."}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {chosen.status !== "Approved" ? (
+                      <Button
+                        variant={chosen.status === "In review" ? "primary" : "secondary"}
+                        size="sm"
+                        disabled={deciding}
+                        onClick={() => decide(chosen, "Approved")}
+                      >
+                        Approve Post
+                      </Button>
+                    ) : null}
+                    {chosen.status !== "Rejected" ? (
+                      <Button size="sm" disabled={deciding} onClick={() => decide(chosen, "Rejected")}>
+                        Reject Post
+                      </Button>
+                    ) : null}
+                  </div>
+                  {problem ? (
+                    <p role="alert" className="text-[13px] text-bad">
+                      {problem}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {chosen.url ? (
                 <a
                   href={chosen.url}
                   target="_blank"
                   rel="noreferrer"
-                  className={cx(buttonClass({ variant: "primary" }), "self-start")}
+                  className={cx(
+                    buttonClass({ variant: chosen.status === "In review" ? "secondary" : "primary" }),
+                    "self-start",
+                  )}
                 >
                   Watch on {chosen.platform}
                   <ArrowUpRight aria-hidden="true" className="size-4" />

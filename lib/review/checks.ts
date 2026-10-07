@@ -4,6 +4,7 @@
 // audited.
 
 import type { Brand, Payout, Post, PostFlag, PostStatus } from "@/lib/data";
+import type { PayoutApproval } from "@/lib/files";
 import type { FetchedPost } from "@/lib/research/metrics";
 
 export type ReviewFlag = NonNullable<PostFlag>;
@@ -120,6 +121,23 @@ export function payoutsFrom(posts: Post[]): Payout[] {
     });
   }
   return [...rows.values()].sort((a, b) => b.amount - a.amount);
+}
+
+// Whether a person has approved what this post earns. An approval is for one
+// amount, so it stops counting when a later review changes the payout.
+export const payoutApproved = (post: Post, approvals: PayoutApproval[]) =>
+  approvals.some((approval) => approval.postId === post.id && approval.amount === post.payout);
+
+// The payout rows split by whether a person has approved them. A creator
+// with an approved post and a newer unapproved one has a row in each list.
+export function payoutsByApproval(posts: Post[], approvals: PayoutApproval[]) {
+  const approved = (post: Post) => payoutApproved(post, approvals);
+  return {
+    waiting: payoutsFrom(posts.filter((post) => !approved(post))),
+    approved: payoutsFrom(posts.filter(approved)).map(
+      (row) => ({ ...row, status: "Approved" }) satisfies Payout,
+    ),
+  };
 }
 
 export type ReviewSummary = {

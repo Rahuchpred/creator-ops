@@ -22,8 +22,8 @@ async function Handoffs() {
   if (activity.length === 0) {
     return (
       <p className="card p-10 text-center text-sm text-pretty text-muted">
-        No handoffs yet. Start the agent worker, then mention the Strategy agent in the BAND room
-        to ask for a brief.
+        Nothing has happened yet. Run an agent from its screen, for example Write the brief on the
+        Brief screen, and what it did shows up here.
       </p>
     );
   }
@@ -52,7 +52,7 @@ export default function ActivityPage() {
     <>
       <PageHeader
         title="Activity"
-        description="Every time one agent hands work to the next. The same messages appear in the BAND room, where you can reply to them."
+        description="Every time an agent finishes a run or hands work to the next one, newest first."
       />
       <Suspense
         fallback={

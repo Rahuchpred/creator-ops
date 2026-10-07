@@ -14,13 +14,14 @@ export type Run =
   | { state: "failed"; steps: string[]; message: string };
 
 // Starts an agent, follows its steps as they stream in, and refreshes the
-// page when it finishes so the new data shows.
+// page when it finishes so the new data shows. `startWith` sends the agent
+// something to work on, such as a pasted link.
 export function useAgentRun(endpoint: string) {
   const router = useRouter();
   const [run, setRun] = useState<Run>({ state: "idle" });
   const steps = useRef<string[]>([]);
 
-  const start = async () => {
+  const begin = async (body?: unknown) => {
     steps.current = [];
     const began = Date.now();
     setRun({ state: "running", steps: [] });
@@ -29,7 +30,12 @@ export function useAgentRun(endpoint: string) {
       setRun({ state: "failed", steps: steps.current, message });
 
     try {
-      const response = await fetch(endpoint, { method: "POST" });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        ...(body === undefined
+          ? {}
+          : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+      });
       if (!response.ok || !response.body) {
         const body = (await response.json().catch(() => null)) as { message?: string } | null;
         return fail(body?.message ?? "The agent could not start. Run it again.");
@@ -70,7 +76,12 @@ export function useAgentRun(endpoint: string) {
     }
   };
 
-  return { run, start, running: run.state === "running" };
+  return {
+    run,
+    start: () => begin(),
+    startWith: (body: unknown) => begin(body),
+    running: run.state === "running",
+  };
 }
 
 // With reduced motion the spinner stops turning and breathes instead, so a

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog } from "@base-ui/react/dialog";
+import { Spinner } from "@/components/agent-run";
 import { BlueField } from "@/components/blue-field";
 import { backdropClass, popupMotionClass } from "@/components/detail-dialog";
 import { Badge, Button, Handle, SectionLabel, buttonClass } from "@/components/ui";
@@ -14,31 +16,74 @@ const statusTone = {
   Paid: "good",
 } as const satisfies Record<PayoutStatus, string>;
 
+// A payout row, with the posts and amounts it stands for. Sample rows have
+// none.
+export type PayoutRow = Payout & { items?: { postId: string; amount: number }[] };
+
 export function PayoutsList({
   payouts,
   avatars,
+  sample,
 }: {
-  payouts: Payout[];
+  payouts: PayoutRow[];
   avatars: Record<string, string>;
+  sample: boolean;
 }) {
-  // Approvals live in memory until the database lands at the end of stage 1.
+  const router = useRouter();
+  // Real approvals are saved and come back with the rows. Only the sample
+  // rows, which belong to no saved post, are approved in memory.
   const [approved, setApproved] = useState<string[]>([]);
-  // The chosen row stays set while the dialog animates out, so its text does
+  // The chosen rows stay set while the dialog animates out, so its text does
   // not blank mid-close.
-  const [pending, setPending] = useState<Payout | null>(null);
+  const [pending, setPending] = useState<PayoutRow[]>([]);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
 
   const rows = payouts.map((payout) =>
-    approved.includes(payout.handle) ? { ...payout, status: "Approved" as const } : payout,
+    sample && approved.includes(payout.handle)
+      ? { ...payout, status: "Approved" as const }
+      : payout,
   );
   const waiting = rows.filter((row) => row.status === "Awaiting approval");
   const settled = rows.filter((row) => row.status !== "Awaiting approval");
   const total = (list: Payout[]) => list.reduce((sum, row) => sum + row.amount, 0);
 
-  const approve = (handles: string[]) => {
-    setApproved((current) => [...new Set([...current, ...handles])]);
-    setOpen(false);
+  const ask = (list: PayoutRow[]) => {
+    setPending(list);
+    setProblem(null);
+    setOpen(true);
   };
+
+  const approve = async () => {
+    if (sample) {
+      setApproved((current) => [...new Set([...current, ...pending.map((row) => row.handle)])]);
+      setOpen(false);
+      return;
+    }
+    setSaving(true);
+    setProblem(null);
+    try {
+      const response = await fetch("/api/payouts/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvals: pending.flatMap((row) => row.items ?? []) }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        setProblem(body?.message ?? "The approval was not saved. Try again.");
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setProblem("Could not reach the app. Check that it is running and try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const one = pending.length === 1 ? pending[0] : null;
 
   // What is owed and what is done are two lists, each with its own total.
   const groups = [
@@ -67,7 +112,7 @@ export function PayoutsList({
           <button
             type="button"
             disabled={waiting.length === 0}
-            onClick={() => approve(waiting.map((row) => row.handle))}
+            onClick={() => ask(waiting)}
             className="press inline-flex h-10 items-center rounded-full bg-white px-4.5 text-sm font-medium text-ink shadow-[0_1px_2px_rgb(16_17_20/0.2)] hover:bg-fill focus-visible:outline-white disabled:pointer-events-none disabled:opacity-60"
           >
             Approve all
@@ -87,7 +132,7 @@ export function PayoutsList({
           <ul className="card">
             {group.rows.map((row) => (
               <li
-                key={row.handle}
+                key={`${row.handle}-${row.status}`}
                 className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-line px-4 py-3.5 text-sm not-first:border-t md:px-5"
               >
                 <div className="min-w-0 flex-1 basis-44">
@@ -106,10 +151,7 @@ export function PayoutsList({
                     <Button
                       size="sm"
                       aria-label={`Approve the payout for @${row.handle}`}
-                      onClick={() => {
-                        setPending(row);
-                        setOpen(true);
-                      }}
+                      onClick={() => ask([row])}
                     >
                       Approve
                     </Button>
@@ -134,17 +176,23 @@ export function PayoutsList({
             )}
           >
             <Dialog.Title className="text-xl font-medium tracking-[-0.02em]">
-              Approve {pending ? formatMoney(pending.amount) : ""}?
+              Approve {formatMoney(total(pending))}?
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-pretty text-muted">
-              {pending
-                ? `This marks @${pending.handle} as approved for ${pending.posts} ${pending.posts === 1 ? "post" : "posts"} and ${formatNumber(pending.views)} views. No money moves from this screen.`
-                : ""}
+              {one
+                ? `This marks @${one.handle} as approved for ${one.posts} ${one.posts === 1 ? "post" : "posts"} and ${formatNumber(one.views)} views. No money moves from this screen.`
+                : `This marks all ${pending.length} waiting payouts as approved, one for each creator. No money moves from this screen.`}
             </Dialog.Description>
+            {problem ? (
+              <p role="alert" className="mt-4 rounded-[14px] bg-bad-soft px-4 py-3 text-sm text-bad">
+                {problem}
+              </p>
+            ) : null}
             <div className="mt-6 flex justify-end gap-2">
               <Dialog.Close className={buttonClass()}>Cancel</Dialog.Close>
-              <Button variant="primary" onClick={() => pending && approve([pending.handle])}>
-                Approve payout
+              <Button variant="primary" disabled={saving || pending.length === 0} onClick={approve}>
+                {saving ? <Spinner /> : null}
+                {saving ? "Approving…" : one ? "Approve payout" : "Approve all"}
               </Button>
             </div>
           </Dialog.Popup>

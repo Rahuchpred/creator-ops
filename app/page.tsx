@@ -1,12 +1,24 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { Eye, Wallet } from "lucide-react";
+import { Check, Eye, Send, Wallet, type LucideIcon } from "lucide-react";
 import { BlueField } from "@/components/blue-field";
-import { AgentTile, Badge, PageHeader, Tile, buttonClass } from "@/components/ui";
+import { AgentTile, Badge, PageHeader, Tile, buttonClass, type TileColor } from "@/components/ui";
 import { totals } from "@/lib/data";
 import { formatCompact, formatDollars, formatMoney } from "@/lib/format";
-import { getProgram, missingStrategyKeys } from "@/lib/store";
+import { payoutsByApproval } from "@/lib/review/checks";
+import {
+  getBrief,
+  getOutreach,
+  getPayoutApprovals,
+  getPosts,
+  getProgram,
+  getRoster,
+  missingResearchKeys,
+  missingReviewKeys,
+  missingSalesKeys,
+  missingStrategyKeys,
+} from "@/lib/store";
 
 const agents = [
   { name: "Strategy", job: "Writes the brief" },
@@ -15,32 +27,133 @@ const agents = [
   { name: "Review", job: "Scores posts and payouts" },
 ];
 
+const missingKeys: Record<string, () => string[]> = {
+  Strategy: missingStrategyKeys,
+  Research: missingResearchKeys,
+  Sales: missingSalesKeys,
+  Review: missingReviewKeys,
+};
+
 // Checked per request, so the badge flips as soon as the keys are in place.
-async function StrategyStatus() {
+async function AgentStatus({ agent }: { agent: string }) {
   await connection();
-  return missingStrategyKeys().length === 0 ? (
+  return missingKeys[agent]().length === 0 ? (
     <Badge tone="good">Ready</Badge>
   ) : (
     <Badge>Needs keys</Badge>
   );
 }
 
-// Read per request, so a program saved a moment ago shows on refresh.
-async function Overview() {
-  const { brand, sample } = await getProgram();
-  const spentShare = Math.round((totals.spend / brand.monthlyBudget) * 100);
+// The order a new program is worked through, one screen at a time.
+const startHere = [
+  { label: "Setup", href: "/program" },
+  { label: "Brief", href: "/brief" },
+  { label: "Roster", href: "/roster" },
+  { label: "Outreach", href: "/outreach" },
+  { label: "Posts", href: "/posts" },
+  { label: "Payouts", href: "/payouts" },
+];
 
-  const stats = [
-    { label: "Approved views", value: formatCompact(totals.views) },
-    { label: "Earned by creators", value: formatDollars(totals.spend) },
-    { label: "Creators onboarded", value: String(totals.onboarded) },
-    { label: "Budget used", value: `${spentShare}%` },
-  ];
+type Waiting = { icon: LucideIcon; color: TileColor; text: string; href: string; action: string };
+
+const plural = (count: number, one: string, many: string) =>
+  count === 1 ? `1 ${one}` : `${count} ${many}`;
+
+// Read per request, so a program or a result saved a moment ago shows on
+// refresh.
+async function Overview() {
+  const [{ brand, sample }, brief, roster, outreach, reviewed, approvals] = await Promise.all([
+    getProgram(),
+    getBrief(),
+    getRoster(),
+    getOutreach(),
+    getPosts(),
+    getPayoutApprovals(),
+  ]);
+
+  // Sample rows stand in for a roster or posts that were never saved.
+  const creators = roster.sample ? [] : roster.creators;
+  const posts = reviewed.sample ? [] : reviewed.posts;
+  const hasResults = creators.length > 0 || outreach.length > 0 || posts.length > 0;
+  // The made-up numbers show only for the sample program with nothing saved.
+  const sampleNumbers = sample && !hasResults && brief?.writtenBy !== "Strategy agent";
+
+  const payouts = payoutsByApproval(posts, approvals);
+  const views = posts
+    .filter((post) => post.status === "Approved")
+    .reduce((sum, post) => sum + post.views, 0);
+  const earned = [...payouts.waiting, ...payouts.approved].reduce(
+    (sum, payout) => sum + payout.amount,
+    0,
+  );
+  const share = (spend: number) => `${Math.round((spend / brand.monthlyBudget) * 100)}%`;
+
+  const stats = sampleNumbers
+    ? [
+        { label: "Approved views", value: formatCompact(totals.views) },
+        { label: "Earned by creators", value: formatDollars(totals.spend) },
+        { label: "Creators onboarded", value: String(totals.onboarded) },
+        { label: "Budget used", value: share(totals.spend) },
+      ]
+    : [
+        { label: "Approved views", value: formatCompact(views) },
+        { label: "Earned by creators", value: formatDollars(earned) },
+        {
+          label: "Creators suggested",
+          value: String(creators.filter((creator) => creator.status === "Suggested").length),
+        },
+        { label: "Budget used", value: share(earned) },
+      ];
+
+  const drafts = outreach.filter((draft) => draft.status === "Awaiting approval").length;
+  const held = posts.filter((post) => post.status === "In review").length;
+  const unpaid = payouts.waiting.length;
+
+  const needsYou: Waiting[] = sampleNumbers
+    ? [
+        {
+          icon: Wallet,
+          color: "violet",
+          text: `${plural(totals.awaitingApproval, "payout is", "payouts are")} waiting for approval`,
+          href: "/payouts",
+          action: "Review payouts",
+        },
+        {
+          icon: Eye,
+          color: "red",
+          text: `${plural(totals.flaggedPosts, "post has", "posts have")} views that look unusual`,
+          href: "/posts",
+          action: "Open posts",
+        },
+      ]
+    : [
+        drafts > 0 && {
+          icon: Send,
+          color: "orange" as const,
+          text: `${plural(drafts, "outreach draft is", "outreach drafts are")} waiting for approval`,
+          href: "/outreach",
+          action: "Read drafts",
+        },
+        held > 0 && {
+          icon: Eye,
+          color: "red" as const,
+          text: `${plural(held, "post is", "posts are")} in review and ${held === 1 ? "needs" : "need"} your call`,
+          href: "/posts",
+          action: "Open posts",
+        },
+        unpaid > 0 && {
+          icon: Wallet,
+          color: "violet" as const,
+          text: `${plural(unpaid, "payout is", "payouts are")} waiting for approval`,
+          href: "/payouts",
+          action: "Review payouts",
+        },
+      ].filter((item) => item !== false);
 
   return (
     <>
       <PageHeader title={brand.name} description={brand.product}>
-        <Badge>{sample ? "Sample program" : "Sample numbers"}</Badge>
+        {sampleNumbers ? <Badge>Sample numbers</Badge> : sample ? <Badge>Sample program</Badge> : null}
         <Link href="/program" className={buttonClass()}>
           {sample ? "Set Up Your Program" : "Edit Program"}
         </Link>
@@ -66,34 +179,56 @@ async function Overview() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <section className="card p-6" aria-labelledby="needs-you">
           <h2 id="needs-you" className="text-base font-semibold tracking-tight">
-            Needs you
+            {sampleNumbers || hasResults ? "Needs you" : "Start here"}
           </h2>
-          <ul className="mt-3 flex flex-col">
-            <li className="flex flex-wrap items-center gap-3 border-t border-line py-3.5">
-              <Tile color="violet">
-                <Wallet strokeWidth={2.25} />
-              </Tile>
-              <span className="min-w-0 flex-1 basis-40 text-sm text-pretty">
-                {totals.awaitingApproval} payouts are waiting for approval
-              </span>
-              <Link href="/payouts" className={buttonClass({ variant: "primary", size: "sm" })}>
-                Review payouts
-              </Link>
-            </li>
-            <li className="flex flex-wrap items-center gap-3 border-t border-line py-3.5">
-              <Tile color="red">
-                <Eye strokeWidth={2.25} />
-              </Tile>
-              <span className="min-w-0 flex-1 basis-40 text-sm text-pretty">
-                {totals.flaggedPosts === 1
-                  ? "1 post has views that look unusual"
-                  : `${totals.flaggedPosts} posts have views that look unusual`}
-              </span>
-              <Link href="/posts" className={buttonClass({ size: "sm" })}>
-                Open posts
-              </Link>
-            </li>
-          </ul>
+          {sampleNumbers || hasResults ? (
+            <ul className="mt-3 flex flex-col">
+              {needsYou.map((item, index) => (
+                <li
+                  key={item.href}
+                  className="flex flex-wrap items-center gap-3 border-t border-line py-3.5"
+                >
+                  <Tile color={item.color}>
+                    <item.icon strokeWidth={2.25} />
+                  </Tile>
+                  <span className="min-w-0 flex-1 basis-40 text-sm text-pretty">{item.text}</span>
+                  <Link
+                    href={item.href}
+                    className={buttonClass({
+                      variant: index === 0 ? "primary" : "secondary",
+                      size: "sm",
+                    })}
+                  >
+                    {item.action}
+                  </Link>
+                </li>
+              ))}
+              {needsYou.length === 0 ? (
+                <li className="flex items-center gap-3 border-t border-line py-3.5">
+                  <Tile color="green">
+                    <Check strokeWidth={2.25} />
+                  </Tile>
+                  <span className="text-sm text-pretty">Nothing is waiting for you right now.</span>
+                </li>
+              ) : null}
+            </ul>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-pretty text-muted">
+                This program has no results yet. Work through the screens in this order.
+              </p>
+              <ol className="mt-4 flex flex-wrap gap-2">
+                {startHere.map((step, index) => (
+                  <li key={step.href}>
+                    <Link href={step.href} className={buttonClass({ size: "sm" })}>
+                      <span className="text-faint tabular-nums">{index + 1}</span>
+                      {step.label}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
         </section>
 
         <section className="card p-6" aria-labelledby="agents">
@@ -111,13 +246,9 @@ async function Overview() {
                   <span className="block font-semibold">{agent.name}</span>
                   <span className="block truncate text-[13px] text-muted">{agent.job}</span>
                 </span>
-                {agent.name === "Strategy" ? (
-                  <Suspense fallback={<Badge>Checking…</Badge>}>
-                    <StrategyStatus />
-                  </Suspense>
-                ) : (
-                  <Badge>Not connected</Badge>
-                )}
+                <Suspense fallback={<Badge>Checking…</Badge>}>
+                  <AgentStatus agent={agent.name} />
+                </Suspense>
               </li>
             ))}
           </ul>

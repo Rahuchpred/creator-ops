@@ -14,6 +14,7 @@ import type {
   ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { briefNote, draftsNote, postsNote, rosterNote } from "@/lib/agents/notes";
 import { findCreators } from "@/lib/agents/research";
 import { reviewPosts } from "@/lib/agents/review";
 import { runSales } from "@/lib/agents/sales-run";
@@ -24,14 +25,16 @@ import {
   briefForWork,
   currentBrand,
   currentBrief,
+  logRun,
+  markContacted,
   readBrief,
   readOutreach,
   readPosts,
   readRoster,
   saveBrief,
+  saveFoundRoster,
   saveOutreach,
   savePosts,
-  saveRoster,
 } from "@/lib/files";
 import { summarize } from "@/lib/review/checks";
 
@@ -254,7 +257,7 @@ server.registerTool(
   {
     title: "Get recent activity",
     description:
-      "Returns the most recent handoffs between the agents, newest first: when, from which agent, to whom, and the note that was passed along. Free and instant. Use it to see what the agents have done lately and in what order. Runs started through this server are not logged here, only handoffs made in the team's shared room.",
+      "Returns the most recent agent runs and handoffs between the agents, newest first: when, from which agent, to whom, and the note that was passed along. Free and instant. Use it to see what the agents have done lately and in what order. Runs started through this server or from the app's buttons are logged here too, with a one-line result.",
     inputSchema: {
       limit: z.number().int().min(1).max(50).default(10).describe("The most handoffs to return"),
     },
@@ -275,6 +278,7 @@ server.registerTool(
       const today = new Date().toISOString().slice(0, 10);
       const { brief } = await writeBrief(await currentBrand(), today, step);
       await saveBrief(brief);
+      await logRun("Strategy", "the assistant", briefNote(brief));
       return {
         saved: true,
         goal: brief.goal,
@@ -290,14 +294,14 @@ server.registerTool(
   "find_creators",
   {
     title: "Find creators",
-    description: `Runs the Research agent: it searches TikTok for creators whose content matches the brief, pulls their real numbers, scores them, and saves the result as the new roster, replacing the current one. ${COST} Returns how many creators were suggested and rejected, the top five suggestions with their score and reason, and the steps the agent took. Read the full roster afterwards with get_roster.`,
+    description: `Runs the Research agent: it searches TikTok for creators whose content matches the brief, pulls their real numbers, scores them, and saves the result as the new roster, replacing the current one. Creators already Contacted, Onboarded or Declined keep that status. ${COST} Returns how many creators were suggested and rejected, the top five suggestions with their score and reason, and the steps the agent took. Read the full roster afterwards with get_roster.`,
     annotations: paidRun,
   },
   async (extra) =>
     runAgent("research", extra, async (step) => {
       const brief = await briefForWork();
-      const roster = await findCreators(await currentBrand(), brief, step);
-      await saveRoster(roster);
+      const roster = await saveFoundRoster(await findCreators(await currentBrand(), brief, step));
+      await logRun("Research", "the assistant", rosterNote(roster));
 
       const suggested = roster
         .filter((creator) => creator.status === "Suggested")
@@ -305,7 +309,7 @@ server.registerTool(
       return {
         saved: true,
         suggested: suggested.length,
-        rejected: roster.length - suggested.length,
+        rejected: roster.filter((creator) => creator.status === "Rejected").length,
         top: suggested.slice(0, 5).map((creator) => ({
           handle: creator.handle,
           score: creator.score ?? creator.fit,
@@ -319,7 +323,7 @@ server.registerTool(
   "draft_outreach",
   {
     title: "Draft outreach",
-    description: `Runs the Sales agent: it writes one outreach message for each of the top suggested creators on the saved roster, up to eight, and saves the drafts, replacing the current ones. ${COST} It needs a roster, so run find_creators first if there is none. Nothing is sent to any creator: the drafts wait for approval. Returns each draft's handle and subject and the steps the agent took. Read the full messages afterwards with get_outreach.`,
+    description: `Runs the Sales agent: it writes one outreach message for each of the top suggested creators on the saved roster who has no approved draft yet, up to eight, and saves the drafts. Approved drafts are kept as they are and drafts still awaiting approval are replaced. ${COST} It needs a roster, so run find_creators first if there is none. Nothing is sent to any creator: the drafts wait for approval. Returns each draft's handle and subject and the steps the agent took. Read the full messages afterwards with get_outreach.`,
     annotations: paidRun,
   },
   async (extra) =>
@@ -328,6 +332,7 @@ server.registerTool(
         throw new Error("There is no roster yet. Run find_creators first.");
       }
       const drafts = await runSales(step);
+      await logRun("Sales", "the assistant", draftsNote(drafts));
       return {
         saved: true,
         drafted: drafts.length,
@@ -352,6 +357,7 @@ server.registerTool(
       const brief = await briefForWork();
       const posts = await reviewPosts(await currentBrand(), brief, step);
       await savePosts(posts);
+      await logRun("Review", "the assistant", postsNote(posts));
       return { saved: true, reviewed: posts.length, ...summarize(posts) };
     }),
 );
@@ -361,7 +367,7 @@ server.registerTool(
   {
     title: "Approve an outreach draft",
     description:
-      "Marks one creator's outreach draft as Approved and returns it. Free and instant. Approving does not send anything to anyone: it only records that a person signed off on the wording. Use it after the person has read the draft from get_outreach and said yes. Takes the creator's handle, with or without the @.",
+      "Marks one creator's outreach draft as Approved, moves that creator to Contacted on the roster, and returns the draft. Free and instant. Approving does not send anything to anyone: the person sends the message themselves. Use it after the person has read the draft from get_outreach and said yes. Takes the creator's handle, with or without the @.",
     inputSchema: {
       handle: z.string().trim().min(1).describe("The creator's handle, for example jaydenrose888"),
     },
@@ -382,6 +388,7 @@ server.registerTool(
 
     const approved = { ...draft, status: "Approved" as const };
     await saveOutreach(outreach.map((row) => (row.handle === draft.handle ? approved : row)));
+    await markContacted(draft.handle);
     return json({ ...approved, sent: false });
   },
 );

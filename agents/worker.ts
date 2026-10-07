@@ -8,7 +8,14 @@ import { findCreators } from "@/lib/agents/research";
 import { reviewPosts } from "@/lib/agents/review";
 import { runSales } from "@/lib/agents/sales-run";
 import { writeBrief } from "@/lib/agents/strategy";
-import { briefForWork, currentBrand, logHandoff, saveBrief, savePosts, saveRoster } from "@/lib/files";
+import {
+  briefForWork,
+  currentBrand,
+  logHandoff,
+  saveBrief,
+  saveFoundRoster,
+  savePosts,
+} from "@/lib/files";
 import { summarize } from "@/lib/review/checks";
 
 type Role = "strategy" | "research" | "sales" | "review";
@@ -111,13 +118,15 @@ const research: GenericAdapterHandler = async ({ tools }) => {
 
   try {
     const brief = await briefForWork();
-    const roster = await findCreators(brand, brief, (step) => {
-      void tools.sendEvent(step, "thought");
-    });
-    await saveRoster(roster);
+    // Creators already contacted, onboarded or declined keep that status.
+    const roster = await saveFoundRoster(
+      await findCreators(brand, brief, (step) => {
+        void tools.sendEvent(step, "thought");
+      }),
+    );
 
     const suggested = roster.filter((creator) => creator.status === "Suggested");
-    const rejected = roster.length - suggested.length;
+    const rejected = roster.filter((creator) => creator.status === "Rejected").length;
     const { to, isAgent } = await recipient("research", tools);
     const note = [
       `The roster for ${brand.name} is ready: ${suggested.length} suggested, ${rejected} rejected.`,

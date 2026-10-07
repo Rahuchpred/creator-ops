@@ -9,14 +9,16 @@ export const metadata: Metadata = { title: "Posts" };
 // Read per request, so posts the Review agent just reviewed show on refresh.
 async function PostsView() {
   const { posts, sample } = await getPosts();
+  const submitted = posts.filter((post) => post.submitted).length;
   return (
     <>
-      <PostsHeader sample={sample} missingKeys={missingReviewKeys()} />
-      {sample ? null : (
+      <PostsHeader sample={sample} submitted={submitted} missingKeys={missingReviewKeys()} />
+      {sample || submitted > 0 || posts.length === 0 ? null : (
         <p className="max-w-[70ch] text-sm text-pretty text-muted">
-          These are not sponsored posts. No program is live yet, so the reviewer is being tested
-          on the roster creators&apos; own recent TikTok videos, checked against the brief. Most
-          were never made for the brand and should fail.
+          These are test rows, not posts made for the program. Until a real post is added
+          above, the reviewer is tried on the roster creators&apos; own recent TikTok videos.
+          Most were never made for the brand and should fail. They clear when the first real
+          post is added.
         </p>
       )}
       <PostsGrid posts={posts} />

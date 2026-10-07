@@ -88,6 +88,12 @@ export type Post = {
   durationSeconds?: number;
   likes?: number;
   comments?: number;
+  // True for a video a person handed in for the program by pasting its
+  // link. Other rows are the reviewer's test run on creators' own videos.
+  submitted?: boolean;
+  // Set when a person made the final call on a held post. A later review
+  // refreshes the numbers and leaves their decision alone.
+  decidedBy?: "person";
 };
 
 export type PayoutStatus = "Awaiting approval" | "Approved" | "Paid";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
 import { Spinner } from "@/components/agent-run";
 import { DetailDialog } from "@/components/detail-dialog";
 import { Badge, Button, Handle, buttonClass, cardButtonClass } from "@/components/ui";
@@ -38,6 +38,18 @@ export function OutreachGrid({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Nothing is sent from here, so the person takes the message with them.
+  const copy = async (message: string) => {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setProblem("The message was not copied. Select the text and copy it by hand.");
+    }
+  };
 
   const approve = async (handle: string) => {
     setSaving(true);
@@ -83,7 +95,7 @@ export function OutreachGrid({
       <p className="text-sm text-muted" aria-live="polite">
         {outreach.length} {outreach.length === 1 ? "draft" : "drafts"},{" "}
         {waiting === 0 ? "all approved" : `${waiting} waiting for approval`}. Open one to read it
-        in full.
+        in full and copy it.
       </p>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -94,6 +106,7 @@ export function OutreachGrid({
               onClick={() => {
                 setChosen(item.handle);
                 setProblem(null);
+                setCopied(false);
                 setOpen(true);
               }}
               className={cx(cardButtonClass, "group flex h-full flex-col p-5 text-sm")}
@@ -162,11 +175,18 @@ export function OutreachGrid({
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line pt-4">
               <p className="max-w-[36ch] text-xs text-pretty text-faint">
                 {draft.status === "Awaiting approval"
-                  ? "Approving does not send anything yet: no message goes to the creator from this screen."
-                  : "Approved. Nothing has been sent: no message goes to the creator from this screen."}
+                  ? "Approving sends nothing. Copy the message and send it to the creator yourself."
+                  : "Approved. Nothing was sent for you: copy the message and send it to the creator yourself."}
               </p>
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex flex-wrap justify-end gap-2">
                 <Dialog.Close className={buttonClass()}>Close</Dialog.Close>
+                <Button onClick={() => copy(draft.message)}>
+                  {copied ? <Check aria-hidden="true" className="size-4" /> : null}
+                  {copied ? "Copied" : "Copy message"}
+                </Button>
+                <span aria-live="polite" className="sr-only">
+                  {copied ? "Message copied" : ""}
+                </span>
                 {draft.status === "Awaiting approval" ? (
                   <Button
                     variant="primary"

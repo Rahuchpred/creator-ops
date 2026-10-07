@@ -3,17 +3,41 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/ui";
 import { payouts as samplePayouts } from "@/lib/data";
 import { formatDollars, formatMoney, formatNumber } from "@/lib/format";
-import { payoutsFrom } from "@/lib/review/checks";
-import { getPosts, getProgram } from "@/lib/store";
-import { PayoutsList } from "./payouts-list";
+import { payoutApproved, payoutsByApproval } from "@/lib/review/checks";
+import { getPayoutApprovals, getPosts, getProgram } from "@/lib/store";
+import { PayoutsList, type PayoutRow } from "./payouts-list";
 
 export const metadata: Metadata = { title: "Payouts" };
 
 // Read per request. Once the Review agent has run, the rows come from the
-// posts it approved, not from the sample data.
+// posts it approved, not from the sample data, and a person's approvals are
+// read back from disk.
 async function PayoutsView() {
-  const [{ posts, sample }, { brand }] = await Promise.all([getPosts(), getProgram()]);
-  const payouts = sample ? samplePayouts : payoutsFrom(posts);
+  const [{ posts, sample }, { brand }, approvals] = await Promise.all([
+    getPosts(),
+    getProgram(),
+    getPayoutApprovals(),
+  ]);
+  const { waiting, approved } = payoutsByApproval(posts, approvals);
+  // A waiting row carries the posts and amounts it stands for, so approving
+  // it records exactly what the person saw.
+  const payouts: PayoutRow[] = sample
+    ? samplePayouts
+    : [
+        ...waiting.map((row) => ({
+          ...row,
+          items: posts
+            .filter(
+              (post) =>
+                post.handle === row.handle &&
+                post.status === "Approved" &&
+                (post.payout ?? 0) > 0 &&
+                !payoutApproved(post, approvals),
+            )
+            .map((post) => ({ postId: post.id, amount: post.payout ?? 0 })),
+        })),
+        ...approved,
+      ];
 
   if (payouts.length === 0) {
     return (
@@ -31,7 +55,7 @@ async function PayoutsView() {
   // A payout row only carries a handle, so the picture comes from the posts.
   const avatars: Record<string, string> = {};
   for (const post of posts) if (post.avatar) avatars[post.handle] = post.avatar;
-  return <PayoutsList payouts={payouts} avatars={avatars} />;
+  return <PayoutsList payouts={payouts} avatars={avatars} sample={sample} />;
 }
 
 // The pay terms come from the saved program.

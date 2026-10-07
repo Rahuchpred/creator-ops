@@ -10,7 +10,7 @@ export function OutreachHeader({ missingKeys }: { missingKeys: string[] }) {
     <>
       <PageHeader
         title="Outreach"
-        description="First messages to the suggested creators on the roster. Every draft waits here for your approval, and nothing is sent to a creator yet."
+        description="First messages to the suggested creators on the roster. Every draft waits here for your approval. Nothing is sent for you: copy an approved message and send it to the creator yourself."
       >
         <Button variant="primary" onClick={start} disabled={running || missingKeys.length > 0}>
           {running ? <Spinner /> : null}
