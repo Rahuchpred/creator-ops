@@ -8,7 +8,7 @@ import { Badge, Handle, tableClass as t } from "@/components/ui";
 import type { Creator, CreatorStatus } from "@/lib/data";
 import { formatCompact } from "@/lib/format";
 
-const filters = ["All", "Suggested", "Contacted", "Onboarded", "Declined"] as const;
+const filters = ["All", "Suggested", "Contacted", "Onboarded", "Declined", "Rejected"] as const;
 type Filter = (typeof filters)[number];
 
 const statusTone = {
@@ -16,6 +16,7 @@ const statusTone = {
   Contacted: "brand",
   Onboarded: "good",
   Declined: "bad",
+  Rejected: "bad",
 } as const satisfies Record<CreatorStatus, string>;
 
 export function RosterTable({ creators }: { creators: Creator[] }) {
@@ -49,27 +50,26 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
         sync(value as Filter, query);
       }}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs.List className="relative flex gap-1 overflow-x-auto rounded-[12px] bg-ink/[0.04] p-1">
+        <Tabs.List className="-m-1 flex max-w-full gap-1.5 overflow-x-auto p-1 [scrollbar-width:none]">
           {filters.map((status) => (
             <Tabs.Tab
               key={status}
               value={status}
-              className="relative z-[1] flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] px-2.5 text-[13px] font-medium text-muted transition-colors select-none hover:text-ink data-[active]:text-brand-700"
+              className="press group flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-3.5 text-[13px] font-medium text-ink select-none hover:bg-fill-strong data-[active]:bg-ink data-[active]:text-white"
             >
               {status}
-              <span className="tabular-nums text-faint">
+              <span className="tabular-nums text-faint group-data-[active]:text-white/70">
                 {creators.filter((creator) => matches(creator, status)).length}
               </span>
             </Tabs.Tab>
           ))}
-          <Tabs.Indicator className="brand-tint absolute top-1 left-0 h-7 w-[var(--active-tab-width)] translate-x-[var(--active-tab-left)] rounded-[8px] transition-[translate,width] duration-200 ease-out motion-reduce:transition-none" />
         </Tabs.List>
 
         <label className="relative block w-full sm:w-64">
           <span className="sr-only">Search creators</span>
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint"
+            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint"
           />
           <input
             type="search"
@@ -82,7 +82,7 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
               sync(filter, event.target.value);
             }}
             placeholder="Search by handle or niche…"
-            className="h-9 w-full rounded-[10px] bg-surface pr-3 pl-9 text-sm shadow-[0_0_0_1px_rgb(14_21_38/0.1),0_1px_2px_rgb(14_21_38/0.05)] placeholder:text-faint"
+            className="h-10 w-full rounded-full bg-fill pr-4 pl-10 text-sm placeholder:text-faint"
           />
         </label>
       </div>
@@ -90,9 +90,9 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
       {filters.map((status) => {
         const rows = creators.filter((creator) => matches(creator, status));
         return (
-          <Tabs.Panel key={status} value={status} className="mt-4 rounded-[14px]">
+          <Tabs.Panel key={status} value={status} className="mt-5 rounded-[20px]">
             {rows.length === 0 ? (
-              <p className="card p-8 text-center text-sm text-muted">
+              <p className="card p-10 text-center text-sm text-muted">
                 No creators match. Clear the search or pick another tab.
               </p>
             ) : (
@@ -101,10 +101,10 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
                   <thead>
                     <tr>
                       <th scope="col" className={t.th}>Creator</th>
-                      <th scope="col" className={t.th}>Niche</th>
+                      <th scope="col" className={t.th}>What they post</th>
                       <th scope="col" className={t.thRight}>Followers</th>
                       <th scope="col" className={t.thRight}>Typical views</th>
-                      <th scope="col" className={t.thRight}>Fit</th>
+                      <th scope="col" className={t.thRight}>Score</th>
                       <th scope="col" className={t.th}>Status</th>
                     </tr>
                   </thead>
@@ -112,11 +112,24 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
                     {rows.map((creator) => (
                       <tr key={creator.handle} className={t.row}>
                         <td className={t.td}>
-                          <Handle handle={creator.handle} name={creator.name} />
+                          {creator.url ? (
+                            <a
+                              href={creator.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block rounded-full hover:opacity-80"
+                            >
+                              <Handle handle={creator.handle} name={creator.name} />
+                            </a>
+                          ) : (
+                            <Handle handle={creator.handle} name={creator.name} />
+                          )}
                         </td>
-                        <td className={t.td}>
+                        <td className={`${t.td} max-w-[340px] min-w-[260px] py-3`}>
                           <div>{creator.niche}</div>
-                          <div className="text-xs text-faint">{creator.platform}</div>
+                          <div className="text-xs text-pretty text-faint">
+                            {creator.reason ?? creator.platform}
+                          </div>
                         </td>
                         <td className={t.tdRight}>{formatCompact(creator.followers)}</td>
                         <td className={t.tdRight}>{formatCompact(creator.averageViews)}</td>
@@ -124,18 +137,25 @@ export function RosterTable({ creators }: { creators: Creator[] }) {
                           <span className="inline-flex items-center justify-end gap-2">
                             <span
                               aria-hidden="true"
-                              className="h-1.5 w-12 overflow-hidden rounded-full bg-brand-100"
+                              className="h-1.5 w-12 overflow-hidden rounded-full bg-fill-strong"
                             >
                               <span
-                                className="brand-fill block h-full rounded-full"
-                                style={{ width: `${creator.fit}%` }}
+                                className="block h-full rounded-full bg-ink"
+                                style={{ width: `${creator.score ?? creator.fit}%` }}
                               />
                             </span>
-                            {creator.fit}
+                            {creator.score ?? creator.fit}
                           </span>
                         </td>
                         <td className={t.td}>
-                          <Badge tone={statusTone[creator.status]}>{creator.status}</Badge>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge tone={statusTone[creator.status]}>{creator.status}</Badge>
+                            {creator.flags?.map((flag) => (
+                              <Badge key={flag} tone="warn">
+                                {flag}
+                              </Badge>
+                            ))}
+                          </div>
                         </td>
                       </tr>
                     ))}

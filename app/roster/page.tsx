@@ -1,25 +1,32 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Button, PageHeader } from "@/components/ui";
-import { creators } from "@/lib/data";
+import { getRoster, missingResearchKeys } from "@/lib/store";
+import { RosterHeader } from "./roster-header";
 import { RosterTable } from "./roster-table";
 
 export const metadata: Metadata = { title: "Roster" };
 
-export default function RosterPage() {
+// Read per request, so a roster the Research agent just built shows on refresh.
+async function RosterView() {
+  const { creators, sample } = await getRoster();
   return (
     <>
-      <PageHeader
-        title="Roster"
-        description="Creators matched to the brief, from first suggestion to onboarded. Fit is scored out of 100."
-      >
-        <Button variant="primary" disabled title="The Research agent is not connected yet">
-          Find more creators
-        </Button>
-      </PageHeader>
-      <Suspense>
-        <RosterTable creators={creators} />
-      </Suspense>
+      <RosterHeader sample={sample} missingKeys={missingResearchKeys()} />
+      <RosterTable creators={creators} />
     </>
+  );
+}
+
+export default function RosterPage() {
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="text-sm text-muted">
+          Loading the roster…
+        </p>
+      }
+    >
+      <RosterView />
+    </Suspense>
   );
 }

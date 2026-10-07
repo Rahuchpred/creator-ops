@@ -12,6 +12,8 @@ export type Brand = {
   ratePerThousandViews: number;
   payoutCapPerPost: number;
   minimumViews: number;
+  // The follower range the program recruits from.
+  creatorFollowers: { min: number; max: number };
   rules: string[];
 };
 
@@ -28,7 +30,7 @@ export type Brief = {
   sources: { title: string; url: string; site: string }[];
 };
 
-export type CreatorStatus = "Suggested" | "Contacted" | "Onboarded" | "Declined";
+export type CreatorStatus = "Suggested" | "Contacted" | "Onboarded" | "Declined" | "Rejected";
 
 export type Creator = {
   handle: string;
@@ -39,6 +41,13 @@ export type Creator = {
   fit: number;
   niche: string;
   status: CreatorStatus;
+  // Filled in by the Research agent. Sample rows leave these out.
+  score?: number;
+  engagementRate?: number;
+  flags?: string[];
+  reason?: string;
+  estimatedPayout?: number;
+  url?: string;
 };
 
 export type PostFlag = "View spike" | "No disclosure" | null;
@@ -74,6 +83,7 @@ export const brand: Brand = {
   ratePerThousandViews: 1.2,
   payoutCapPerPost: 400,
   minimumViews: 5000,
+  creatorFollowers: { min: 3000, max: 150000 },
   rules: [
     "Mark every post as a paid partnership or use #ad.",
     "Show the app on screen in the first three seconds.",

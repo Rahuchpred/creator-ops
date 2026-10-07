@@ -1,16 +1,41 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
+import { Ban, BookOpen, Check, Quote, TrendingUp } from "lucide-react";
+import { Tile, type TileColor } from "@/components/ui";
 import { formatDay } from "@/lib/format";
 import { getBrief, missingStrategyKeys } from "@/lib/store";
 import { BriefHeader } from "./brief-header";
 
 export const metadata: Metadata = { title: "Brief" };
 
-function List({ title, items }: { title: string; items: string[] }) {
+function Title({ color, icon, children }: { color: TileColor; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="card p-5">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <ul className="mt-3 flex flex-col text-sm">
+    <h2 className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+      <Tile color={color} size="sm">
+        {icon}
+      </Tile>
+      {children}
+    </h2>
+  );
+}
+
+function List({
+  title,
+  items,
+  color,
+  icon,
+}: {
+  title: string;
+  items: string[];
+  color: TileColor;
+  icon: ReactNode;
+}) {
+  return (
+    <section className="card p-6">
+      <Title color={color} icon={icon}>
+        {title}
+      </Title>
+      <ul className="mt-4 flex flex-col text-sm">
         {items.map((item) => (
           <li key={item} className="border-t border-line py-3 text-pretty">
             {item}
@@ -36,33 +61,49 @@ async function BriefView() {
 
       <section className="card p-6 md:p-8">
         <h2 className="text-xs font-medium text-faint">Goal</h2>
-        <p className="mt-2 max-w-[40ch] text-2xl font-semibold tracking-tight text-balance">
+        <p className="mt-2 max-w-[40ch] text-2xl font-medium tracking-[-0.02em] text-balance md:text-[28px] md:leading-[1.2]">
           {brief.goal}
         </p>
         <h2 className="mt-6 text-xs font-medium text-faint">Angle</h2>
         <p className="mt-2 max-w-[65ch] text-pretty text-muted">{brief.angle}</p>
       </section>
 
-      <section className="card p-5">
-        <h2 className="text-sm font-semibold">Opening lines to try</h2>
-        <ol className="mt-3 flex flex-col text-sm">
+      <section className="card p-6">
+        <Title color="orange" icon={<Quote strokeWidth={2.25} />}>
+          Opening lines to try
+        </Title>
+        <ol className="mt-4 flex flex-col text-sm">
           {brief.hooks.map((hook, index) => (
-            <li key={hook} className="flex gap-4 border-t border-line py-3">
-              <span className="w-4 shrink-0 tabular-nums text-faint">{index + 1}</span>
-              <span className="text-pretty">{hook}</span>
+            <li key={hook} className="flex items-start gap-3 border-t border-line py-3">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-fill text-xs font-medium tabular-nums text-muted">
+                {index + 1}
+              </span>
+              <span className="pt-0.5 text-pretty">{hook}</span>
             </li>
           ))}
         </ol>
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <List title="Every post includes" items={brief.mustInclude} />
-        <List title="Leave out" items={brief.avoid} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <List
+          title="Every post includes"
+          items={brief.mustInclude}
+          color="green"
+          icon={<Check strokeWidth={2.5} />}
+        />
+        <List
+          title="Leave out"
+          items={brief.avoid}
+          color="red"
+          icon={<Ban strokeWidth={2.25} />}
+        />
       </div>
 
-      <section className="card p-5">
-        <h2 className="text-sm font-semibold">What is working in this niche</h2>
-        <ul className="mt-3 flex flex-col text-sm">
+      <section className="card p-6">
+        <Title color="violet" icon={<TrendingUp strokeWidth={2.25} />}>
+          What is working in this niche
+        </Title>
+        <ul className="mt-4 flex flex-col text-sm">
           {brief.references.map((reference) => (
             <li key={reference.title} className="border-t border-line py-3">
               {reference.url ? (
@@ -70,7 +111,7 @@ async function BriefView() {
                   href={reference.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium text-brand-600 underline decoration-brand-200 underline-offset-4 hover:decoration-brand-500"
+                  className="font-medium underline decoration-fill-strong decoration-2 underline-offset-4 hover:decoration-ink"
                 >
                   {reference.title}
                 </a>
@@ -84,11 +125,11 @@ async function BriefView() {
       </section>
 
       {brief.sources.length > 0 ? (
-        <section className="card p-5">
-          <h2 className="text-sm font-semibold">
+        <section className="card p-6">
+          <Title color="grey" icon={<BookOpen strokeWidth={2.25} />}>
             {brief.sources.length} pages the agent read
-          </h2>
-          <ul className="mt-3 flex flex-col text-sm">
+          </Title>
+          <ul className="mt-4 flex flex-col text-sm">
             {brief.sources.map((source) => (
               <li key={source.url} className="flex min-w-0 gap-3 border-t border-line py-2.5">
                 <a

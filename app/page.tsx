@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { Eye, Wallet } from "lucide-react";
 import { BlueField } from "@/components/blue-field";
-import { Badge, PageHeader, buttonClass } from "@/components/ui";
+import { AgentTile, Badge, PageHeader, Tile, buttonClass } from "@/components/ui";
 import { brand, totals } from "@/lib/data";
 import { formatCompact, formatDollars, formatMoney } from "@/lib/format";
 import { missingStrategyKeys } from "@/lib/store";
@@ -42,14 +43,14 @@ export default function OverviewPage() {
 
       <section
         aria-label="This month"
-        className="brand-field relative overflow-hidden rounded-[18px] text-white"
+        className="brand-field relative overflow-hidden rounded-[24px] text-white"
       >
         <BlueField className="absolute inset-0 size-full" />
-        <dl className="relative grid grid-cols-2 gap-x-6 gap-y-8 p-6 md:grid-cols-4 md:p-8">
+        <dl className="relative grid grid-cols-2 gap-x-6 gap-y-8 p-6 md:grid-cols-4 md:p-9">
           {stats.map((stat) => (
             <div key={stat.label} className="flex flex-col-reverse gap-1">
-              <dt className="text-sm text-white/80">{stat.label}</dt>
-              <dd className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
+              <dt className="text-sm text-white/85">{stat.label}</dt>
+              <dd className="text-3xl font-medium tracking-[-0.03em] tabular-nums md:text-[40px] md:leading-none">
                 {stat.value}
               </dd>
             </div>
@@ -57,22 +58,28 @@ export default function OverviewPage() {
         </dl>
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="card p-5" aria-labelledby="needs-you">
-          <h2 id="needs-you" className="text-sm font-semibold">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section className="card p-6" aria-labelledby="needs-you">
+          <h2 id="needs-you" className="text-base font-semibold tracking-tight">
             Needs you
           </h2>
           <ul className="mt-3 flex flex-col">
-            <li className="flex items-center justify-between gap-4 border-t border-line py-3">
-              <span className="text-sm">
+            <li className="flex flex-wrap items-center gap-3 border-t border-line py-3.5">
+              <Tile color="violet">
+                <Wallet strokeWidth={2.25} />
+              </Tile>
+              <span className="min-w-0 flex-1 basis-40 text-sm text-pretty">
                 {totals.awaitingApproval} payouts are waiting for approval
               </span>
               <Link href="/payouts" className={buttonClass({ variant: "primary", size: "sm" })}>
                 Review payouts
               </Link>
             </li>
-            <li className="flex items-center justify-between gap-4 border-t border-line py-3">
-              <span className="text-sm">
+            <li className="flex flex-wrap items-center gap-3 border-t border-line py-3.5">
+              <Tile color="red">
+                <Eye strokeWidth={2.25} />
+              </Tile>
+              <span className="min-w-0 flex-1 basis-40 text-sm text-pretty">
                 {totals.flaggedPosts === 1
                   ? "1 post has views that look unusual"
                   : `${totals.flaggedPosts} posts have views that look unusual`}
@@ -84,19 +91,20 @@ export default function OverviewPage() {
           </ul>
         </section>
 
-        <section className="card p-5" aria-labelledby="agents">
-          <h2 id="agents" className="text-sm font-semibold">
+        <section className="card p-6" aria-labelledby="agents">
+          <h2 id="agents" className="text-base font-semibold tracking-tight">
             Agents
           </h2>
           <ul className="mt-3 flex flex-col">
             {agents.map((agent) => (
               <li
                 key={agent.name}
-                className="flex items-center justify-between gap-4 border-t border-line py-3 text-sm"
+                className="flex items-center gap-3 border-t border-line py-3.5 text-sm"
               >
-                <span>
-                  <span className="font-medium">{agent.name}</span>
-                  <span className="text-muted"> {agent.job.toLowerCase()}</span>
+                <AgentTile agent={agent.name} />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{agent.name}</span>
+                  <span className="block truncate text-[13px] text-muted">{agent.job}</span>
                 </span>
                 {agent.name === "Strategy" ? (
                   <Suspense fallback={<Badge>Checking…</Badge>}>
@@ -111,8 +119,8 @@ export default function OverviewPage() {
         </section>
       </div>
 
-      <section className="card p-5" aria-labelledby="program">
-        <h2 id="program" className="text-sm font-semibold">
+      <section className="card p-6" aria-labelledby="program">
+        <h2 id="program" className="text-base font-semibold tracking-tight">
           Program
         </h2>
         <dl className="mt-3 grid gap-x-8 text-sm md:grid-cols-2">

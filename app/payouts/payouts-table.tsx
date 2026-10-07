@@ -36,15 +36,15 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
     <>
       <section
         aria-label="Waiting for approval"
-        className="brand-field relative overflow-hidden rounded-[18px] text-white"
+        className="brand-field relative overflow-hidden rounded-[24px] text-white"
       >
         <BlueField className="absolute inset-0 size-full" />
-        <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 md:p-8">
+        <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 md:p-9">
           <div aria-live="polite">
-            <div className="text-4xl font-semibold tracking-tight tabular-nums">
+            <div className="text-4xl font-medium tracking-[-0.03em] tabular-nums md:text-5xl">
               {formatMoney(waitingTotal)}
             </div>
-            <div className="mt-1 text-sm text-white/80">
+            <div className="mt-2 text-sm text-white/85">
               {waiting.length === 0
                 ? "Nothing is waiting for approval"
                 : `Waiting for approval across ${waiting.length} ${waiting.length === 1 ? "creator" : "creators"}`}
@@ -54,7 +54,7 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
             type="button"
             disabled={waiting.length === 0}
             onClick={() => approve(waiting.map((row) => row.handle))}
-            className="inline-flex h-9 items-center rounded-[10px] bg-white px-3.5 text-sm font-medium text-brand-700 shadow-[0_1px_2px_rgb(14_21_38/0.2),inset_0_-1px_0_rgb(14_21_38/0.08)] transition-colors hover:bg-brand-50 disabled:pointer-events-none disabled:opacity-60"
+            className="press inline-flex h-10 items-center rounded-full bg-white px-4.5 text-sm font-medium text-ink shadow-[0_1px_2px_rgb(16_17_20/0.2)] hover:bg-fill focus-visible:outline-white disabled:pointer-events-none disabled:opacity-60"
           >
             Approve all
           </button>
@@ -105,9 +105,9 @@ export function PayoutsTable({ payouts }: { payouts: Payout[] }) {
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 bg-brand-900/30 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
-          <Dialog.Popup className="card fixed top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overscroll-contain p-6 transition-[opacity,scale] duration-150 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
-            <Dialog.Title className="text-lg font-semibold tracking-tight">
+          <Dialog.Backdrop className="fixed inset-0 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
+          <Dialog.Popup className="fixed rounded-[24px] bg-surface shadow-[0_0_0_1px_var(--color-line),0_24px_60px_-20px_rgb(16_17_20/0.3)] top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overscroll-contain p-6 transition-[opacity,scale] duration-150 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none">
+            <Dialog.Title className="text-xl font-medium tracking-[-0.02em]">
               Approve {pending ? formatMoney(pending.amount) : ""}?
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-pretty text-muted">

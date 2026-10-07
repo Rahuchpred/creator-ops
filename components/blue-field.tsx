@@ -126,10 +126,13 @@ export function BlueField({ className }: { className?: string }) {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className={`opacity-0 transition-opacity duration-500 motion-reduce:transition-none ${className ?? ""}`}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        className={`opacity-0 transition-opacity duration-500 motion-reduce:transition-none ${className ?? ""}`}
+      />
+      <div aria-hidden="true" className="dot-grid pointer-events-none absolute inset-0" />
+    </>
   );
 }
