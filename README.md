@@ -1,82 +1,115 @@
 # Creator Ops
 
-Working name. A zero-human company that runs pay-per-view UGC creator programs
-for consumer brands. Built for the Crewbase Collective "Zero Human Startup"
-hackathon (SF Tech Week, Phase 2 runs October 7-11, 2026).
+**An AI team that runs your pay-per-view creator program.**
+
+Live: https://prod-main-app-c27069-00rt439e5sw.compute.instacloud-edge.com
+
+Built for the Crewbase Collective "Zero Human Startup" hackathon, SF Tech
+Week, October 2026.
 
 ## The idea
 
-Brands, especially consumer apps, run programs where dozens or hundreds of
-small creators post TikToks and Reels and get paid per 1,000 views. Running one
-is a full-time human job: recruiting, briefing, reviewing submissions, counting
-views, calculating payouts, posting announcements.
+Consumer brands pay small creators per 1,000 views to post TikToks. The
+marketplaces give a brand creators and a way to pay them. Someone still has
+to write the brief, recruit, check every video, count views and work out who
+is owed what. Today that is one person with a Discord server and a
+spreadsheet.
 
-This company does that whole job with agents. A brand hands over its product,
-budget and rules. The agents find creators, brief them, review what gets
-posted, count views and work out who is owed what. The brand gets a weekly
-report and approves payouts.
+Creator Ops does that job with four AI agents. A brand pastes what it has,
+presses one button, and the team runs the program. A person approves two
+things: the outreach before it goes out, and the money before anyone is paid.
 
-It is a service the brand hires, not a tool the brand's team operates. The
-agents are the staff. It replaces a creator program manager or an agency
-retainer, not a software subscription.
+## The team
 
-## Why this one
+| Agent | Area | What it does |
+|---|---|---|
+| **Strategy** | Strategy | Researches what is working in the brand's niche right now and writes the creator brief. Every reference links to a page it read |
+| **Research** | Research | Searches TikTok for creators who fit the brief, pulls their real numbers, scores them and raises fraud flags |
+| **Sales** | Sales | Drafts one first message per creator, written from that creator's own content. Nothing is sent until a person approves it |
+| **Marketing** | Marketing | Reads every posted video, including a timed transcript of what is said, checks it against the brief and the rules, flags odd views, and works out the payout |
 
-- The work is already all text and data, so "zero human" is believable.
-- Buyers already pay people for it.
-- Customer zero exists: our own creator program, with real data from day one.
+One rule runs through all four: **the model judges, the code computes.** The
+model decides how well a creator or a video fits the brief and what to say.
+Plain code computes every score, flag, verdict and dollar amount, so no
+number on screen can be invented.
 
-## The agents
+## What you can do in it
 
-Five agents, one per department of the startup. Most serve both the client and
-the company itself.
+- **Set up a program by pasting notes.** A message, a pitch or rough bullet
+  points. The form fills itself.
+- **Run the whole team from one button.** Strategy, Research, Sales and
+  Marketing run in order and stop for your approval.
+- **Bring posts in three ways.** Paste a video link, let creators hand in
+  their own on a public creator page, or pull in every video carrying the
+  program hashtag in one press.
+- **See why a post was approved, held or rejected.** The reviewer's note
+  cites the second something is said, such as "the app is first named at
+  0:14".
+- **Make the final call.** Approve or reject any post, approve payouts, and
+  ban a creator for botting.
+- **Track the money.** A budget bar shows what is paid, committed, held and
+  left for the month.
+- **Rank everything.** A leaderboard of top posts and top creators, with a
+  trust score per creator computed from their flags.
+- **Ask the team.** Type an investor question and the agent who owns that
+  area answers from the company's own documents and live data.
+- **Give creators their own page.** They read the brief, hand in videos, and
+  see what each one earned.
 
-| Agent | Area | For clients | For our own company |
-|---|---|---|---|
-| Research | Research | Finds and scores creators | Finds brands that run creator programs |
-| Strategy | Strategy | Writes briefs from what is working in the niche | Decides which niche to target and how to price |
-| Sales | Sales, GTM | Recruits and onboards creators | Pitches and closes brands |
-| Marketing | Marketing | None | Turns client results into case studies, posts and the landing page |
-| Product | Product | Builds the review and payout pipeline | Ships the dashboard and fixes what users complain about |
+## Built with the hackathon sponsors
 
-The review step is a pipeline the Product agent builds and runs in Phase 1. In
-Phase 2 it becomes a sixth agent.
+| Sponsor | Role in the product |
+|---|---|
+| **RocketRide** | The Strategy agent runs as a RocketRide pipeline: a strategist agent that delegates research to a sub-agent, defined in [`pipelines/strategy.pipe`](pipelines/strategy.pipe) and run on RocketRide Cloud. Its steps stream into the app as it works |
+| **BAND** | The room the agents work in. Each agent is a member of one BAND room, and one message starts the chain: Strategy hands the brief to Research, Research hands the roster to Sales, and Sales reports back to a person. See [`agents/worker.ts`](agents/worker.ts) |
+| **Glasser** | All TikTok data, paid per call: creator and hashtag search, profiles, recent videos, single videos and timed transcripts |
+| **Querit** | Live web search for the research behind every brief |
+| **InstaCloud** | Hosting. The live site is one container with a persistent disk, created and deployed from the command line by a coding agent |
 
-## Client pipeline
+## How a program runs
 
-1. Brand signs up with product, budget and rules.
-2. Strategy writes the creator brief. Glasser, Querit.
-3. Research finds matching creators. Glasser, Apify.
-4. Sales recruits and onboards them. AdaL.
-5. Creators post videos on TikTok and Reels.
-6. The review pipeline scores each post against the brief and flags suspicious
-   views. RocketRide, Tenki.
-7. A payout report goes to a person, who approves payment.
+1. **Setup.** The brand, what it pays, the follower range it wants, its
+   hashtag and its rules.
+2. **Strategy** researches the niche and writes the brief: the goal, the
+   angle, opening lines, what every post includes and what to avoid.
+3. **Research** finds creators on TikTok and ranks them. Each one gets a
+   score, a reason, fraud flags and an expected payout.
+4. **Sales** drafts a message to each suggested creator. You approve, copy
+   and send.
+5. **Posts come in** by link, by creator page or by hashtag.
+6. **Marketing** checks each one: the paid label, the brief, the rules, view
+   spikes, low engagement and duplicates. It sets a verdict and a payout.
+7. **You** decide the held posts and approve the payouts.
 
-Results from step 6 feed the next brief and the next creator search.
+## Under the hood
 
-## Company stack
+- **App:** Next.js 16, React 19, Tailwind, Base UI and Geist.
+- **Model:** Claude Opus 5.5 through the Anthropic SDK, with tool use,
+  structured output, streaming and prompt caching.
+- **MCP server:** assistants such as Claude can read the program and run the
+  agents. See [`docs/mcp.md`](docs/mcp.md).
+- **Storage:** files on a persistent disk.
 
-- Kylon: headquarters. One room per client, tracker apps the agents maintain.
-- BAND: handoffs between agents, with an audit trail.
-- AdaL: the harness every agent runs on.
-- Paritok: sits in front of every model call to cut token cost.
-- Prelint, Tenki, InstaCloud: how the Product agent ships code. Prelint checks
-  each PR against the product rules, Tenki runs tests in sandboxes, InstaCloud
-  hosts the product.
+## Run it yourself
 
-## Risks
+```bash
+bun install
+cp .env.example .env.local   # add your keys
+bun run dev -p 3100
+```
 
-- View fraud. Botted views are the hard problem in this market. Catching them
-  is the main differentiator and needs real work.
-- Platform rules. Automated DMs on TikTok and Instagram break their terms.
-  Recruit by email and Discord.
-- Money. Payouts need a human-owned payment account. Agents calculate, a
-  person approves.
+Open http://localhost:3100, go to Setup, paste a few lines about a program
+and press Run the Program on the Overview.
+
+To run the agents as a chain in a BAND room:
+
+```bash
+npm run agents
+```
 
 ## More
 
-- [docs/hackathon-brief.md](docs/hackathon-brief.md): the official brief, deliverables and investor questions
-- [docs/plan.md](docs/plan.md): the five build stages
-- [docs/sponsors.md](docs/sponsors.md): every sponsor, what it is, and whether we use it
-- [docs/market.md](docs/market.md): market size, competitors, sources
+- [`docs/market.md`](docs/market.md): the market and who else is in it
+- [`docs/competitors.md`](docs/competitors.md): what similar tools do
+- [`docs/business-model.md`](docs/business-model.md): pricing and unit economics
+- [`docs/plan.md`](docs/plan.md): how it was built, stage by stage

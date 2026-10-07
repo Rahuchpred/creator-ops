@@ -7,7 +7,11 @@ export const rocketRideUri = () => process.env.ROCKETRIDE_URI;
 
 // Runs one pipeline file on the RocketRide engine: start it, ask it one
 // question, read the JSON answer, stop it.
-export async function runPipeline(file: string, ask: string): Promise<unknown> {
+export async function runPipeline(
+  file: string,
+  ask: string,
+  onStep?: (label: string) => void,
+): Promise<unknown> {
   const client = new RocketRideClient({
     uri: rocketRideUri(),
     auth: process.env.ROCKETRIDE_AUTH ?? process.env.ROCKETRIDE_APIKEY ?? "",
@@ -21,12 +25,34 @@ export async function runPipeline(file: string, ask: string): Promise<unknown> {
   await client.connect();
   let token: string | undefined;
   try {
-    const run = await client.use({ filepath: path.join(process.cwd(), "pipelines", file) });
+    const filepath = path.join(process.cwd(), "pipelines", file);
+    // A run that was cut off leaves its task alive on the engine, which then
+    // refuses to start the pipeline again. Stop the leftover and start fresh.
+    const run = await client.use({ filepath }).catch(async (error) => {
+      if (!String(error).includes("already running")) throw error;
+      const leftover = await client.use({ filepath, useExisting: true });
+      await client.terminate(leftover.token);
+      return client.use({ filepath });
+    });
     token = run.token;
 
     const question = new Question({ expectJson: true });
     question.addQuestion(ask);
-    const response = await client.chat({ token, question });
+    // The pipeline's agents say what they are doing as they go. Those lines
+    // become the steps a person watches.
+    let last = "";
+    const response = await client.chat({
+      token,
+      question,
+      onSSE: async (type: string, data: unknown) => {
+        const message = (data as { message?: unknown } | null)?.message;
+        if (type !== "thinking" || typeof message !== "string") return;
+        const label = message.trim().slice(0, 160);
+        if (!label || label === last || /^(Analyzing your request|Planning step|Step \d+ complete)/.test(label)) return;
+        last = label;
+        onStep?.(`RocketRide: ${label}`);
+      },
+    });
 
     const text = (response as { answers?: unknown[] } | undefined)?.answers?.[0];
     if (text === undefined || text === null) {

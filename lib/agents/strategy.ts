@@ -75,6 +75,7 @@ async function writeBriefOnRocketRide(
   const raw = await runPipeline(
     "strategy.pipe",
     `Today is ${today}.\n\n${describeBrand(brand)}\n\nWrite the creator brief for this brand.`,
+    onStep,
   );
 
   const parsed = PipelineBriefSchema.safeParse(raw);
