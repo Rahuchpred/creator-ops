@@ -21,8 +21,9 @@ Read tools. Free and instant.
 | `get_outreach` | The outreach drafts and whether each is approved. |
 | `get_posts` | Reviewed posts with status, flags, brief score, feedback, payout and URL. Optional `status` filter and `limit`. |
 | `get_activity` | Recent handoffs between the agents. Optional `limit`. |
+| `ask_team` | Puts one investor question to the four AI employees. The one who owns that area answers from the documents and the saved data, and says what is not done yet. One model call, changes nothing. Optional `history` for a follow-up. |
 
-Action tools. Each of the first four starts a paid agent run that takes one
+Action tools. Each one except `approve_outreach` starts a paid agent run that takes one
 to four minutes and spends a few cents of data plus a model call. The tool
 descriptions say so, and a well-behaved assistant asks before calling one.
 
@@ -31,7 +32,7 @@ descriptions say so, and a well-behaved assistant asks before calling one.
 | `write_brief` | Runs the Strategy agent and saves a new brief. |
 | `find_creators` | Runs the Research agent and saves a new roster. |
 | `draft_outreach` | Runs the Sales agent and saves a draft for each top suggested creator. Needs a roster. |
-| `review_posts` | Runs the Review agent and saves the reviews and payouts. Needs a roster. |
+| `review_posts` | Runs the Marketing agent and saves the reviews and payouts. Needs a roster. |
 | `approve_outreach` | Marks one draft as Approved, by handle. Free. Approving does not send anything. |
 
 Each run returns a short summary and the steps the agent reported. Clients

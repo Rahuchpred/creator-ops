@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  return streamAgent("Review", missingReviewKeys(), async (step) => {
+  return streamAgent("Marketing", missingReviewKeys(), async (step) => {
     const brief = await briefForWork();
     const { post, posts } = await reviewLink(await currentBrand(), brief, body.data.link, step);
     await savePosts(posts);
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     await logHandoff({
       at: new Date().toISOString(),
-      from: "Review",
+      from: "Marketing",
       to: "the app",
       note: `Reviewed a post by @${post.handle}: ${post.status}, brief score ${post.briefScore}, ${post.views.toLocaleString("en-US")} views.`,
     });

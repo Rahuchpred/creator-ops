@@ -203,7 +203,7 @@ const review: GenericAdapterHandler = async ({ tools }) => {
     ].join("\n");
 
     await tools.sendMessage(note, to ? [to] : undefined);
-    await logHandoff({ at: new Date().toISOString(), from: "Review", to: to ?? "the room", note });
+    await logHandoff({ at: new Date().toISOString(), from: "Marketing", to: to ?? "the room", note });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unknown error";
     await tools.sendMessage(

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { Shell } from "@/components/shell";
 import { Sidebar } from "@/components/sidebar";
 import { getProgram } from "@/lib/store";
 import "./globals.css";
@@ -43,9 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <NamedSidebar />
         </Suspense>
         <main id="main" className="min-w-0 flex-1">
-          <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 md:px-10 md:py-12">
-            {children}
-          </div>
+          <Shell>{children}</Shell>
         </main>
       </body>
     </html>

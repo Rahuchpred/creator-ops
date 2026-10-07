@@ -6,6 +6,7 @@ import {
   Clapperboard,
   FileText,
   LayoutGrid,
+  MessageCircleQuestion,
   MessagesSquare,
   Send,
   SlidersHorizontal,
@@ -13,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
+import { isPublic } from "@/components/shell";
 import { cx } from "@/lib/format";
 
 const groups = [
@@ -40,12 +42,16 @@ const groups = [
   },
   {
     label: "Team",
-    links: [{ href: "/activity", label: "Activity", icon: MessagesSquare }],
+    links: [
+      { href: "/activity", label: "Activity", icon: MessagesSquare },
+      { href: "/ask", label: "Ask the team", icon: MessageCircleQuestion },
+    ],
   },
 ];
 
 export function Sidebar({ name }: { name: string }) {
   const pathname = usePathname();
+  if (isPublic(pathname)) return null;
 
   return (
     <aside className="flex shrink-0 flex-col gap-3 border-line bg-surface p-3 max-md:border-b md:sticky md:top-0 md:h-dvh md:w-64 md:gap-6 md:overflow-y-auto md:border-r md:p-4">

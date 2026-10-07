@@ -16,6 +16,13 @@ const cents = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+const percent = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
+
+const decimal = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+
 const day = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -26,6 +33,12 @@ export const formatCompact = (value: number) => compact.format(value);
 export const formatNumber = (value: number) => whole.format(value);
 export const formatDollars = (value: number) => dollars.format(value);
 export const formatMoney = (value: number) => cents.format(value);
+// Whole dollars stay whole, anything else shows its cents.
+export const formatAmount = (value: number) =>
+  Number.isInteger(value) ? dollars.format(value) : cents.format(value);
+// Takes a share from 0 to 1.
+export const formatPercent = (value: number) => percent.format(value);
+export const formatDecimal = (value: number) => decimal.format(value);
 export const formatDay = (iso: string) => day.format(new Date(`${iso}T00:00:00Z`));
 
 export function cx(...parts: Array<string | false | null | undefined>) {

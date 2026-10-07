@@ -7,10 +7,10 @@ import { missingReviewKeys, savePosts } from "@/lib/store";
 export const maxDuration = 300;
 
 export async function POST() {
-  return streamAgent("Review", missingReviewKeys(), async (step) => {
+  return streamAgent("Marketing", missingReviewKeys(), async (step) => {
     const brief = await briefForWork();
     const posts = await reviewPosts(await currentBrand(), brief, step);
     await savePosts(posts);
-    await logRun("Review", "the app", postsNote(posts));
+    await logRun("Marketing", "the app", postsNote(posts));
   });
 }

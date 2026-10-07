@@ -153,3 +153,22 @@ body {
     transform: none;
   }
 }
+
+/* Landing page (/welcome): the one entrance moment, on the hero preview.
+   Opacity and transform only, and nothing at all with reduced motion. */
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+.welcome-rise {
+  animation: welcome-rise 700ms var(--ease-out) 120ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-rise {
+    animation: none;
+  }
+}

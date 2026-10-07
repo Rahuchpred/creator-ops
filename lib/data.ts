@@ -70,11 +70,11 @@ export type Post = {
   postedAt: string;
   views: number;
   briefScore: number;
-  // The most serious flag on the post. The Review agent lists all of them
+  // The most serious flag on the post. The Marketing agent lists all of them
   // in `flags`.
   flag: PostFlag;
   status: PostStatus;
-  // Filled in by the Review agent. Sample rows leave these out.
+  // Filled in by the Marketing agent. Sample rows leave these out.
   name?: string;
   flags?: NonNullable<PostFlag>[];
   feedback?: string;

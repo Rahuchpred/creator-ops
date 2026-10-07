@@ -1,5 +1,5 @@
 // The Creator Ops MCP server. It lets an AI assistant read the program and
-// run the four agents over stdio. Start it with `bun run mcp`.
+// run the five agents over stdio. Start it with `bun run mcp`.
 // The env import stays first: it sets the working directory and loads the
 // keys before any product code is loaded.
 
@@ -14,6 +14,7 @@ import type {
   ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { askTeam, EMPLOYEES } from "@/lib/agents/ask";
 import { briefNote, draftsNote, postsNote, rosterNote } from "@/lib/agents/notes";
 import { findCreators } from "@/lib/agents/research";
 import { reviewPosts } from "@/lib/agents/review";
@@ -218,7 +219,7 @@ server.registerTool(
   {
     title: "Get the reviewed posts",
     description:
-      "Returns the posts the Review agent has reviewed: id, handle, caption, date, views, status (Approved, In review or Rejected), flags such as \"View spike\" or \"No disclosure\", the brief score out of 100, the feedback sentence for the creator, the payout in dollars and the post URL. Also returns a summary with counts per status and the total payout. Free and instant. Returns an empty list when review_posts has not run yet.",
+      "Returns the posts the Marketing agent has reviewed: id, handle, caption, date, views, status (Approved, In review or Rejected), flags such as \"View spike\" or \"No disclosure\", the brief score out of 100, the feedback sentence for the creator, the payout in dollars and the post URL. Also returns a summary with counts per status and the total payout. Free and instant. Returns an empty list when review_posts has not run yet.",
     inputSchema: {
       status: z
         .enum(["In review", "Approved", "Rejected"])
@@ -346,7 +347,7 @@ server.registerTool(
   "review_posts",
   {
     title: "Review posts",
-    description: `Runs the Review agent: it pulls recent posts from the suggested creators on the saved roster, scores each one against the brief, checks views and disclosure for fraud flags, works out payouts, and saves the reviews, replacing the current ones. ${COST} It needs a roster, so run find_creators first if there is none. Nothing is paid: payouts wait for a person's approval. Returns the counts of approved, in review and rejected posts, the total payout, the most serious flags, and the steps the agent took. Read each review afterwards with get_posts.`,
+    description: `Runs the Marketing agent: it pulls recent posts from the suggested creators on the saved roster, scores each one against the brief, checks views and disclosure for fraud flags, works out payouts, and saves the reviews, replacing the current ones. ${COST} It needs a roster, so run find_creators first if there is none. Nothing is paid: payouts wait for a person's approval. Returns the counts of approved, in review and rejected posts, the total payout, the most serious flags, and the steps the agent took. Read each review afterwards with get_posts.`,
     annotations: paidRun,
   },
   async (extra) =>
@@ -357,7 +358,7 @@ server.registerTool(
       const brief = await briefForWork();
       const posts = await reviewPosts(await currentBrand(), brief, step);
       await savePosts(posts);
-      await logRun("Review", "the assistant", postsNote(posts));
+      await logRun("Marketing", "the assistant", postsNote(posts));
       return { saved: true, reviewed: posts.length, ...summarize(posts) };
     }),
 );
@@ -390,6 +391,45 @@ server.registerTool(
     await saveOutreach(outreach.map((row) => (row.handle === draft.handle ? approved : row)));
     await markContacted(draft.handle);
     return json({ ...approved, sent: false });
+  },
+);
+
+server.registerTool(
+  "ask_team",
+  {
+    title: "Ask the team",
+    description:
+      "Puts one investor question to the company's four AI employees (Strategy, Research, Sales, Marketing). The one who owns that area answers in the first person, in about 120 words, from the company's own documents in docs/ and the saved program, brief, roster, outreach, posts, payout approvals and activity. It says plainly what is not done or not known: there are no paying customers, no creator has been contacted, and prices and margins are estimates. Makes one model call, takes a few seconds and changes nothing. Returns `employee`, a one-line `reason` that employee is answering, and the `answer` as plain text. For a follow-up, pass the earlier questions and answers in `history`, oldest first.",
+    inputSchema: {
+      question: z.string().trim().min(1).max(1000).describe("The investor's question"),
+      history: z
+        .array(
+          z.discriminatedUnion("role", [
+            z.object({ role: z.literal("investor"), text: z.string().trim().min(1).max(1000) }),
+            z.object({
+              role: z.literal("employee"),
+              employee: z.enum(EMPLOYEES),
+              text: z.string().trim().min(1).max(6000),
+            }),
+          ]),
+        )
+        .max(40)
+        .default([])
+        .describe("Earlier turns of this conversation, oldest first. Leave out for a first question."),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async ({ question, history }) => {
+    const missing = missingKeys("sales");
+    if (missing.length > 0) {
+      return failure(`Add ${missing.join(", ")} to .env.local in the project root, then call this again.`);
+    }
+    try {
+      return json(await askTeam(question, history));
+    } catch (error) {
+      console.error("Ask the team failed", error);
+      return failure(explain(error));
+    }
   },
 );
 

@@ -11,7 +11,7 @@ const ROLES = [
   { role: "STRATEGY", name: "Strategy", description: "Researches the niche and writes the creator brief" },
   { role: "RESEARCH", name: "Research", description: "Finds and scores creators who fit the brief" },
   { role: "SALES", name: "Sales", description: "Drafts outreach to creators and waits for approval" },
-  { role: "REVIEW", name: "Review", description: "Scores posted videos and works out payouts" },
+  { role: "REVIEW", name: "Marketing", description: "Checks posted videos and works out payouts" },
 ];
 
 const key = process.env.BAND_USER_API_KEY;

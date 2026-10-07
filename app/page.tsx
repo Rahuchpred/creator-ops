@@ -24,14 +24,14 @@ const agents = [
   { name: "Strategy", job: "Writes the brief" },
   { name: "Research", job: "Fills the roster" },
   { name: "Sales", job: "Drafts outreach" },
-  { name: "Review", job: "Scores posts and payouts" },
+  { name: "Marketing", job: "Checks posts and sets payouts" },
 ];
 
 const missingKeys: Record<string, () => string[]> = {
   Strategy: missingStrategyKeys,
   Research: missingResearchKeys,
   Sales: missingSalesKeys,
-  Review: missingReviewKeys,
+  Marketing: missingReviewKeys,
 };
 
 // Checked per request, so the badge flips as soon as the keys are in place.

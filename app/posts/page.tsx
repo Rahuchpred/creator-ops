@@ -6,7 +6,7 @@ import { PostsHeader } from "./posts-header";
 
 export const metadata: Metadata = { title: "Posts" };
 
-// Read per request, so posts the Review agent just reviewed show on refresh.
+// Read per request, so posts the Marketing agent just reviewed show on refresh.
 async function PostsView() {
   const { posts, sample } = await getPosts();
   const submitted = posts.filter((post) => post.submitted).length;

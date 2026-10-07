@@ -54,7 +54,7 @@ export async function getOutreach(): Promise<Outreach[]> {
   return (await readOutreach()) ?? [];
 }
 
-// The posts the Review agent reviewed, or the sample ones before its first run.
+// The posts the Marketing agent reviewed, or the sample ones before its first run.
 export async function getPosts(): Promise<{ posts: Post[]; sample: boolean }> {
   await connection();
   const saved = await readPosts();
@@ -105,7 +105,7 @@ export function missingSalesKeys(): string[] {
   return missing;
 }
 
-// The Review agent pulls each creator's posts through Glasser and scores
+// The Marketing agent pulls each creator's posts through Glasser and scores
 // them with the model.
 export function missingReviewKeys(): string[] {
   const missing: string[] = ["GLASSER_API_KEY"].filter((name) => !process.env[name]);

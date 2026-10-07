@@ -103,6 +103,8 @@ const agentLook: Record<string, { color: TileColor; icon: LucideIcon }> = {
   strategy: { color: "blue", icon: Lightbulb },
   research: { color: "green", icon: Search },
   sales: { color: "orange", icon: Send },
+  marketing: { color: "pink", icon: BadgeCheck },
+  // The Marketing agent's earlier name, still on older activity entries.
   review: { color: "pink", icon: BadgeCheck },
 };
 

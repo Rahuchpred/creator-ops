@@ -5,7 +5,7 @@ export type AgentEvent =
   | { type: "done" }
   | { type: "error"; message: string };
 
-function explain(error: unknown) {
+export function explain(error: unknown) {
   if (error instanceof Anthropic.AuthenticationError) {
     return "The model key was rejected. Check ANTHROPIC_API_KEY in .env.local.";
   }

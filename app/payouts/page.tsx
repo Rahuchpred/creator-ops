@@ -9,7 +9,7 @@ import { PayoutsList, type PayoutRow } from "./payouts-list";
 
 export const metadata: Metadata = { title: "Payouts" };
 
-// Read per request. Once the Review agent has run, the rows come from the
+// Read per request. Once the Marketing agent has run, the rows come from the
 // posts it approved, not from the sample data, and a person's approvals are
 // read back from disk.
 async function PayoutsView() {

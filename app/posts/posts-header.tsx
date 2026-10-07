@@ -33,7 +33,7 @@ export function PostsHeader({
           {all.running ? "Reviewing…" : submitted > 0 ? "Refresh Reviews" : "Run a Test Review"}
         </Button>
       </PageHeader>
-      <MissingKeys agent="Review" keys={missingKeys} />
+      <MissingKeys agent="Marketing" keys={missingKeys} />
 
       <form
         className="card flex flex-wrap items-end gap-3 p-5"
@@ -67,13 +67,13 @@ export function PostsHeader({
           {one.running ? "Reviewing…" : "Review This Post"}
         </Button>
         <p className="basis-full text-[13px] text-pretty text-faint">
-          Paste the TikTok link a creator sends you. The Review agent checks it against the brief,
+          Paste the TikTok link a creator sends you. The Marketing agent checks it against the brief,
           looks for the paid label and odd views, and works out what it earns. About a minute.
         </p>
       </form>
 
-      <AgentRunPanel run={one.run} agent="Review" doneTitle="Post reviewed" />
-      <AgentRunPanel run={all.run} agent="Review" doneTitle="Posts reviewed" />
+      <AgentRunPanel run={one.run} agent="Marketing" doneTitle="Post reviewed" />
+      <AgentRunPanel run={all.run} agent="Marketing" doneTitle="Posts reviewed" />
     </>
   );
 }
