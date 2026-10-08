@@ -66,6 +66,27 @@ number on screen can be invented.
 | **Querit** | Live web search for the research behind every brief |
 | **InstaCloud** | Hosting. The live site is one container with a persistent disk, created and deployed from the command line by a coding agent |
 
+## Why RocketRide is at the center
+
+The brief is the most important document in a creator program. Every
+creator works from it and every video is judged against it. So the agent
+that writes it runs on RocketRide.
+
+- **Two agents, one pipeline.** A strategist agent owns the brief. It
+  delegates the research to a second agent and writes only from what that
+  agent reports back. RocketRide makes that delegation a single line in the
+  pipeline: one agent is simply a tool the other can call.
+- **Real research, built in.** The researcher searches the live web through
+  an HTTP tool inside the pipeline, several searches at once, and keeps its
+  notes in the pipeline's own memory.
+- **You watch it think.** RocketRide streams each agent's steps as they
+  happen, and those lines appear in the app while the brief is being written.
+- **One file, any brand.** The whole thing is
+  [`pipelines/strategy.pipe`](pipelines/strategy.pipe). Every program a
+  brand sets up goes through the same pipeline, with nothing rewritten.
+- **No servers to run.** It runs on RocketRide Cloud, so the hosted app
+  starts a pipeline with one call and gets a finished brief back.
+
 ## How a program runs
 
 1. **Setup.** The brand, what it pays, the follower range it wants, its
