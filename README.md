@@ -60,13 +60,41 @@ number on screen can be invented.
 
 | Sponsor | Role in the product |
 |---|---|
-| **RocketRide** | The Strategy agent runs as a RocketRide pipeline: a strategist agent that delegates research to a sub-agent, defined in [`pipelines/strategy.pipe`](pipelines/strategy.pipe) and run on RocketRide Cloud. Its steps stream into the app as it works |
 | **BAND** | The room the agents work in. Each agent is a member of one BAND room, and one message starts the chain: Strategy hands the brief to Research, Research hands the roster to Sales, and Sales reports back to a person. See [`agents/worker.ts`](agents/worker.ts) |
+| **RocketRide** | The Strategy agent runs as a RocketRide pipeline: a strategist agent that delegates research to a sub-agent, defined in [`pipelines/strategy.pipe`](pipelines/strategy.pipe) and run on RocketRide Cloud. Its steps stream into the app as it works |
 | **Glasser** | All TikTok data, paid per call: creator and hashtag search, profiles, recent videos, single videos and timed transcripts |
 | **Querit** | Live web search for the research behind every brief |
 | **InstaCloud** | Hosting. The live site is one container with a persistent disk, created and deployed from the command line by a coding agent |
 
-## Why RocketRide is at the center
+## The team works in a BAND room
+
+A company is people talking to each other. Ours is agents talking to each
+other, and BAND is where that happens.
+
+- **Every agent is a real member of the room.** Strategy, Research, Sales
+  and Marketing each have their own identity in one BAND room, next to the
+  founder.
+- **One message runs the company.** The founder writes one line to
+  Strategy. Strategy writes the brief and hands it to Research by name.
+  Research builds the roster and hands it to Sales. Sales drafts the
+  outreach and reports back to the founder, because a person approves
+  before anything goes out.
+- **The handoff is the product.** No function calls another function. An
+  agent finishes, posts its work in the room and mentions the next agent,
+  the way a colleague would. Take BAND away and the team stops being a team.
+- **You can watch them work.** Each agent posts short progress notes as it
+  goes, so the room reads like a live standup.
+- **A person can step in at any point** by replying in the room, to
+  redirect, correct or stop the work.
+- **Everything is on the record.** Who did what, in what order, and what
+  they passed on is in the room, and mirrored in the app's Activity screen.
+- **It is built to behave.** An agent only takes work from a person or from
+  the agent before it, and ignores a repeat while it is busy, so the chain
+  never loops.
+
+The whole thing is one file: [`agents/worker.ts`](agents/worker.ts).
+
+## Why the brief runs on RocketRide
 
 The brief is the most important document in a creator program. Every
 creator works from it and every video is judged against it. So the agent
